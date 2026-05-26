@@ -57,6 +57,10 @@ Below 35/50: revise.
 
 [Hardik Pandya](https://hvpandya.com)
 
+## Other Languages
+
+- 🇨🇳 [stop-slop-zh](https://github.com/pencil20388-eng/stop-slop-zh) — Chinese version. Different banned words, punctuation rules, colloquial phrase library, and 4-layer QA system. Chinese AI writing has completely different tells from English.
+
 ## License
 
 MIT. Use freely, share widely.
