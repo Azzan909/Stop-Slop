@@ -28,6 +28,29 @@ Eliminate predictable AI writing patterns from prose.
 
 8. **Cut quotables.** If it sounds like a pull-quote, rewrite it.
 
+## Technical Mode
+
+For technical documentation (APIs, specs, PRDs, ADRs, code comments), enable technical mode:
+
+or use the `--tech` flag.
+
+When technical mode is enabled:
+
+1. **Reduced sensitivity** on known false positives. See `references/technical.md` for the full guide.
+
+2. **Detect-only mode** (recommended for technical docs):
+
+Flags issues without rewriting. Output format:
+
+
+3. **Keep overrides**: Add `[keep]` on any line to exempt it from rewriting.
+
+### Technical Mode Output Format
+
+### When to Skip Technical Mode
+
+For blog posts, casual writing, marketing copy, or any non-technical prose, keep technical mode OFF. The core Stop Slop rules are correct for these contexts.
+
 ## Quick Checks
 
 Before delivering prose:

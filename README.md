@@ -39,6 +39,16 @@ stop-slop/
 
 **Sentence-level rules** - No Wh- sentence starters, no em dashes, no staccato fragmentation, no lazy extremes, active voice required.
 
+## Technical mode
+
+For API docs, specs, PRDs, and code comments:
+
+- Reduces false positives (`robust`, `may`, passive voice, 3+ item lists)
+- Supports `detect` mode (flag only, no rewrite)
+- See `references/technical.md` for false-positive guide
+
+**Use technical mode for technical writing. Use standard mode for everything else.**
+
 ## Scoring
 
 Rate 1-10 on each dimension:
