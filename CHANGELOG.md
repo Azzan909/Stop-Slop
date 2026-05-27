@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-05-27
+
+### Added
+
+- **Technical mode** (`references/technical.md`): False-positive guide for API docs, specs, PRDs, ADRs, code comments
+- **Detect-only mode**: Flag issues without rewriting, with structured output
+- **Keep override**: `[keep]` comment to exempt specific lines
+- SKILL.md: Technical mode section with output format
+- README.md: Technical mode quick reference
+
+### Changed
+
+- None. Default behavior unchanged.
+
 ## 2026-01-13
 
 ### Added
