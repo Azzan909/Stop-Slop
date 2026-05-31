@@ -28,6 +28,8 @@ Eliminate predictable AI writing patterns from prose.
 
 8. **Cut quotables.** If it sounds like a pull-quote, rewrite it.
 
+9. **Use targeted prompts.** For stubborn patterns, use specific rewrite prompts from [references/prompts.md](references/prompts.md). Each prompt targets one AI slop type.
+
 ## Quick Checks
 
 Before delivering prose:
