@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الإدارة — صندوق الحماية الاجتماعية</title>
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px; }
+@media(max-width:900px){.admin-grid{grid-template-columns:1fr;}}
+.admin-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+@media(max-width:900px){.admin-stats{grid-template-columns:repeat(2,1fr);}}
+.admin-stat { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; position:relative; overflow:hidden; }
+.admin-stat::before { content:''; position:absolute; top:0; right:0; width:80px; height:80px; border-radius:50%; transform:translate(30%,-30%); }
+.admin-stat.blue::before { background:rgba(26,79,114,.12); }
+.admin-stat.gold::before { background:rgba(200,169,81,.15); }
+.admin-stat.green::before { background:rgba(34,197,94,.12); }
+.admin-stat.purple::before { background:rgba(168,85,247,.12); }
+.admin-stat-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; margin-bottom:10px; }
+.admin-stat.blue .admin-stat-icon { background:rgba(26,79,114,.12); color:var(--primary); }
+.admin-stat.gold .admin-stat-icon { background:rgba(200,169,81,.15); color:var(--gold); }
+.admin-stat.green .admin-stat-icon { background:rgba(34,197,94,.12); color:var(--success); }
+.admin-stat.purple .admin-stat-icon { background:rgba(168,85,247,.12); color:#a855f7; }
+.admin-stat-val { font-size:1.8rem; font-weight:900; line-height:1; margin-bottom:4px; }
+.admin-stat-lbl { font-size:.78rem; color:var(--text-muted); }
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; }
+.chart-card-title { font-size:1rem; font-weight:700; margin-bottom:16px; }
+.chart-wrap { position:relative; height:240px; }
+.employee-table { width:100%; border-collapse:collapse; }
+.employee-table th { text-align:right; padding:10px 14px; font-size:.78rem; color:var(--text-muted); font-weight:600; border-bottom:2px solid var(--border); background:var(--bg); }
+body.ltr .employee-table th { text-align:left; }
+.employee-table td { padding:12px 14px; font-size:.85rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+.employee-table tr:hover td { background:var(--bg); }
+.emp-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--primary),#2d80b5); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; }
+.emp-info { display:flex; align-items:center; gap:10px; }
+.emp-name { font-weight:600; font-size:.88rem; }
+.emp-email { font-size:.73rem; color:var(--text-muted); }
+.mini-bar { background:var(--border); border-radius:999px; height:5px; width:80px; display:inline-block; vertical-align:middle; }
+.mini-bar-fill { height:5px; border-radius:999px; background:var(--primary); }
+.status-badge { font-size:.7rem; padding:3px 10px; border-radius:999px; font-weight:700; display:inline-block; }
+.status-active { background:rgba(34,197,94,.12); color:#16a34a; }
+.status-training { background:rgba(26,79,114,.12); color:var(--primary); }
+.status-review { background:rgba(239,68,68,.1); color:#dc2626; }
+.action-btn { padding:5px 10px; border:1.5px solid var(--border); border-radius:6px; background:none; font-size:.75rem; cursor:pointer; font-family:inherit; color:var(--text); transition:all .2s; }
+.action-btn:hover { border-color:var(--primary); color:var(--primary); }
+.table-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+.table-search { padding:9px 14px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:.85rem; background:var(--bg); color:var(--text); outline:none; min-width:200px; }
+.table-search:focus { border-color:var(--primary); }
+.export-btn { padding:9px 18px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-family:inherit; font-size:.85rem; font-weight:700; cursor:pointer; }
+.score-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:4px; }
+body.ltr .score-dot { margin-left:0; margin-right:4px; }
+.tab-nav { display:flex; gap:4px; background:var(--bg); border-radius:10px; padding:4px; margin-bottom:24px; width:fit-content; }
+.tab-nav-btn { padding:8px 20px; border:none; border-radius:7px; background:none; font-family:inherit; font-size:.88rem; font-weight:600; cursor:pointer; color:var(--text-muted); transition:all .2s; }
+.tab-nav-btn.active { background:var(--surface); color:var(--primary); box-shadow:var(--shadow); }
+</style>
+</head>
+<body>
+<div id="shell"></div>
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><span class="ar-text">لوحة الإدارة</span><span class="en-text">Admin Dashboard</span></h1>
+      <p class="page-subtitle"><span class="ar-text">متابعة أداء الموظفين وتحليل تقدمهم</span><span class="en-text">Monitor employee performance and track progress</span></p>
+    </div>
+    <button class="export-btn" onclick="exportCSV()">
+      <i class="fa-solid fa-file-export"></i>
+      <span class="ar-text"> تصدير تقرير</span><span class="en-text"> Export Report</span>
+    </button>
+  </div>
+
+  <!-- Stats row -->
+  <div class="admin-stats" id="adminStats"></div>
+
+  <!-- Tab nav -->
+  <div class="tab-nav">
+    <button class="tab-nav-btn active" onclick="switchAdminTab('overview',this)">
+      <span class="ar-text">نظرة عامة</span><span class="en-text">Overview</span>
+    </button>
+    <button class="tab-nav-btn" onclick="switchAdminTab('employees',this)">
+      <span class="ar-text">الموظفون</span><span class="en-text">Employees</span>
+    </button>
+    <button class="tab-nav-btn" onclick="switchAdminTab('reports',this)">
+      <span class="ar-text">التقارير</span><span class="en-text">Reports</span>
+    </button>
+  </div>
+
+  <!-- Overview tab -->
+  <div id="tab-overview">
+    <div class="admin-grid">
+      <div class="chart-card">
+        <div class="chart-card-title"><span class="ar-text">متوسط نتائج الاختبارات لكل موظف</span><span class="en-text">Average Quiz Scores per Employee</span></div>
+        <div class="chart-wrap"><canvas id="chartScores"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title"><span class="ar-text">توزيع تقدم التدريب</span><span class="en-text">Training Progress Distribution</span></div>
+        <div class="chart-wrap"><canvas id="chartProgress"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title"><span class="ar-text">تقدم الفصول القانونية</span><span class="en-text">Legal Chapter Completion by Employee</span></div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="chartChapters"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Employees tab -->
+  <div id="tab-employees" style="display:none;">
+    <div class="card">
+      <div class="table-toolbar">
+        <input class="table-search" type="text" placeholder="ابحث عن موظف..." id="empSearch" oninput="filterEmployees()">
+        <div style="font-size:.85rem;color:var(--text-muted);"><span id="empCount"></span></div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="employee-table" id="empTable">
+          <thead>
+            <tr>
+              <th><span class="ar-text">الموظف</span><span class="en-text">Employee</span></th>
+              <th><span class="ar-text">الدور</span><span class="en-text">Role</span></th>
+              <th><span class="ar-text">التقدم</span><span class="en-text">Progress</span></th>
+              <th><span class="ar-text">متوسط الاختبار</span><span class="en-text">Quiz Avg</span></th>
+              <th><span class="ar-text">الحالة</span><span class="en-text">Status</span></th>
+              <th><span class="ar-text">إجراء</span><span class="en-text">Action</span></th>
+            </tr>
+          </thead>
+          <tbody id="empTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reports tab -->
+  <div id="tab-reports" style="display:none;">
+    <div class="admin-grid">
+      <div class="chart-card">
+        <div class="chart-card-title"><span class="ar-text">ملخص الاختبارات</span><span class="en-text">Quiz Summary</span></div>
+        <div id="quizSummaryTable"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title"><span class="ar-text">إحصائيات عامة</span><span class="en-text">General Statistics</span></div>
+        <div id="generalStats"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.requireAuth();
+var user = JSON.parse(localStorage.getItem('spf_user') || '{}');
+if (user.role !== 'admin') {
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;"><i class="fa-solid fa-lock" style="font-size:3rem;color:var(--danger);"></i><p style="font-size:1.1rem;font-weight:700;">هذه الصفحة للمديرين فقط</p><a href="index.html" style="color:var(--primary);">Login as Admin</a></div>';
+  throw new Error('Not admin');
+}
+document.getElementById('shell').innerHTML = buildSidebar('admin.html') + buildTopbar('لوحة الإدارة','Admin Dashboard');
+App.renderUserChip();
+App.markActiveNav();
+
+var currentTab = 'overview';
+
+function switchAdminTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-nav-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('tab-overview').style.display = tab === 'overview' ? '' : 'none';
+  document.getElementById('tab-employees').style.display = tab === 'employees' ? '' : 'none';
+  document.getElementById('tab-reports').style.display = tab === 'reports' ? '' : 'none';
+  if (tab === 'overview' && !chartsBuilt) { buildCharts(); chartsBuilt = true; }
+  if (tab === 'employees') buildEmployeeTable();
+  if (tab === 'reports') buildReports();
+  App.applyLang();
+}
+
+// Build stats
+var emps = SPF.employees;
+var avgProgress = Math.round(emps.reduce(function(s,e){return s+e.progress;},0)/emps.length);
+var avgQuiz = Math.round(emps.reduce(function(s,e){return s+e.quiz_avg;},0)/emps.length);
+var activeCount = emps.filter(function(e){return e.status==='active';}).length;
+var needsReview = emps.filter(function(e){return e.quiz_avg<60;}).length;
+
+document.getElementById('adminStats').innerHTML = [
+  { cls:'blue',   icon:'fa-users',           val:emps.length,    ar:'إجمالي الموظفين',   en:'Total Employees' },
+  { cls:'gold',   icon:'fa-chart-line',      val:avgProgress+'%', ar:'متوسط التقدم',      en:'Avg Progress' },
+  { cls:'green',  icon:'fa-circle-check',    val:activeCount,    ar:'موظفون نشطون',    en:'Active Employees' },
+  { cls:'purple', icon:'fa-triangle-exclamation', val:needsReview, ar:'يحتاجون مراجعة', en:'Need Review' }
+].map(function(s) {
+  return '<div class="admin-stat ' + s.cls + '">'+
+    '<div class="admin-stat-icon"><i class="fa-solid ' + s.icon + '"></i></div>'+
+    '<div class="admin-stat-val">' + s.val + '</div>'+
+    '<div class="admin-stat-lbl"><span class="ar-text">' + s.ar + '</span><span class="en-text">' + s.en + '</span></div>'+
+    '</div>';
+}).join('');
+
+var chartsBuilt = false;
+
+function buildCharts() {
+  var isLtr = document.body.classList.contains('ltr');
+  var names = emps.map(function(e) { return isLtr ? e.name_en : e.name_ar; });
+  var scores = emps.map(function(e) { return e.quiz_avg; });
+  var progresses = emps.map(function(e) { return e.progress; });
+
+  var primaryColor = '#1A4F72';
+  var goldColor = '#C8A951';
+
+  // Scores bar chart
+  new Chart(document.getElementById('chartScores'), {
+    type: 'bar',
+    data: {
+      labels: names,
+      datasets: [{
+        label: isLtr ? 'Quiz Average %' : 'متوسط الاختبارات %',
+        data: scores,
+        backgroundColor: scores.map(function(s) { return s >= 80 ? '#22c55e' : s >= 60 ? goldColor : '#ef4444'; }),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function(v) { return v+'%'; } } } }
+    }
+  });
+
+  // Progress doughnut chart
+  var above80 = progresses.filter(function(p){return p>=80;}).length;
+  var bet6080 = progresses.filter(function(p){return p>=60&&p<80;}).length;
+  var below60 = progresses.filter(function(p){return p<60;}).length;
+  new Chart(document.getElementById('chartProgress'), {
+    type: 'doughnut',
+    data: {
+      labels: isLtr ? ['80-100% (Advanced)','60-79% (Intermediate)','<60% (Beginner)'] : ['متقدم (80-100%)','  متوسط (60-79%)','  مبتدئ (<60%)'],
+      datasets: [{ data: [above80, bet6080, below60], backgroundColor: ['#22c55e', goldColor, '#ef4444'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+  });
+
+  // Chapters radar-style bar
+  new Chart(document.getElementById('chartChapters'), {
+    type: 'bar',
+    data: {
+      labels: names,
+      datasets: [
+        { label: isLtr ? 'Progress %' : 'نسبة التقدم', data: progresses, backgroundColor: primaryColor + 'cc', borderRadius: 4 },
+        { label: isLtr ? 'Quiz Avg %' : 'متوسط الاختبار', data: scores, backgroundColor: goldColor + 'cc', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function(v) { return v+'%'; } } } }
+    }
+  });
+}
+
+function buildEmployeeTable() {
+  var query = (document.getElementById('empSearch').value || '').toLowerCase();
+  var filtered = emps.filter(function(e) {
+    return !query || e.name_ar.toLowerCase().includes(query) || e.name_en.toLowerCase().includes(query) || e.email.toLowerCase().includes(query);
+  });
+  var isLtr = document.body.classList.contains('ltr');
+  document.getElementById('empCount').innerHTML =
+    '<span class="ar-text">' + filtered.length + ' موظف</span><span class="en-text">' + filtered.length + ' employees</span>';
+  document.getElementById('empTableBody').innerHTML = filtered.map(function(e) {
+    var initials = e.name_en.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    var statusCls = e.status === 'active' ? 'status-active' : e.status === 'training' ? 'status-training' : 'status-review';
+    var statusAr = e.status === 'active' ? 'نشط' : e.status === 'training' ? 'تدريب' : 'يحتاج مراجعة';
+    var statusEn = e.status === 'active' ? 'Active' : e.status === 'training' ? 'Training' : 'Needs Review';
+    var scoreColor = e.quiz_avg >= 80 ? 'var(--success)' : e.quiz_avg >= 60 ? 'var(--gold)' : 'var(--danger)';
+    return '<tr>' +
+      '<td><div class="emp-info"><div class="emp-avatar">' + initials + '</div><div><div class="emp-name"><span class="ar-text">' + e.name_ar + '</span><span class="en-text">' + e.name_en + '</span></div><div class="emp-email">' + e.email + '</div></div></div></td>' +
+      '<td><span class="ar-text">' + e.role_ar + '</span><span class="en-text">' + e.role_en + '</span></td>' +
+      '<td><div style="display:flex;align-items:center;gap:8px;"><div class="mini-bar"><div class="mini-bar-fill" style="width:' + e.progress + '%;"></div></div><span style="font-size:.78rem;font-weight:600;">' + e.progress + '%</span></div></td>' +
+      '<td><span style="color:' + scoreColor + ';font-weight:700;">' + e.quiz_avg + '%</span></td>' +
+      '<td><span class="status-badge ' + statusCls + '"><span class="ar-text">' + statusAr + '</span><span class="en-text">' + statusEn + '</span></span></td>' +
+      '<td><button class="action-btn" onclick="viewEmployee(\'' + e.email + '\')"><span class="ar-text">عرض</span><span class="en-text">View</span></button></td>' +
+      '</tr>';
+  }).join('');
+  App.applyLang();
+}
+
+function filterEmployees() { buildEmployeeTable(); }
+
+function viewEmployee(email) {
+  var e = emps.find(function(x) { return x.email === email; });
+  if (!e) return;
+  alert((document.body.classList.contains('ltr') ? e.name_en : e.name_ar) + '\n' +
+    (document.body.classList.contains('ltr') ? 'Progress: ' : 'التقدم: ') + e.progress + '%\n' +
+    (document.body.classList.contains('ltr') ? 'Quiz Avg: ' : 'متوسط الاختبار: ') + e.quiz_avg + '%');
+}
+
+function buildReports() {
+  var quizRows = SPF.quizzes.map(function(q) {
+    return '<tr><td style="padding:8px 4px;font-size:.85rem;"><span class="ar-text">' + q.title_ar + '</span><span class="en-text">' + q.title_en + '</span></td>' +
+      '<td style="padding:8px 4px;font-size:.85rem;text-align:center;">' + q.questions.length + '</td>' +
+      '<td style="padding:8px 4px;font-size:.85rem;text-align:center;color:var(--primary);font-weight:700;">' + q.pass_score + '%</td></tr>';
+  }).join('');
+  document.getElementById('quizSummaryTable').innerHTML =
+    '<table style="width:100%;border-collapse:collapse;">' +
+    '<thead><tr><th style="padding:8px 4px;font-size:.78rem;color:var(--text-muted);text-align:right;border-bottom:2px solid var(--border);"><span class="ar-text">الاختبار</span><span class="en-text">Quiz</span></th>' +
+    '<th style="padding:8px 4px;font-size:.78rem;color:var(--text-muted);text-align:center;border-bottom:2px solid var(--border);"><span class="ar-text">الأسئلة</span><span class="en-text">Questions</span></th>' +
+    '<th style="padding:8px 4px;font-size:.78rem;color:var(--text-muted);text-align:center;border-bottom:2px solid var(--border);"><span class="ar-text">درجة النجاح</span><span class="en-text">Pass Score</span></th></tr></thead>' +
+    '<tbody>' + quizRows + '</tbody></table>';
+
+  var lawsCount = SPF.chapters.length;
+  var articlesTotal = SPF.chapters.reduce(function(s,c){return s+(c.article_count||0);}, 0);
+  document.getElementById('generalStats').innerHTML = [
+    { icon:'fa-scale-balanced', ar:'فصول القانون', en:'Law Chapters', val:lawsCount },
+    { icon:'fa-file-lines',     ar:'إجمالي المواد', en:'Total Articles', val:articlesTotal || '215+' },
+    { icon:'fa-book',           ar:'مقالات قاعدة المعرفة', en:'Knowledge Articles', val:SPF.knowledge_articles.length },
+    { icon:'fa-graduation-cap', ar:'برامج تدريبية', en:'Training Programs', val:SPF.training_programs.length }
+  ].map(function(s) {
+    return '<div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">'+
+      '<div style="width:36px;height:36px;border-radius:8px;background:rgba(26,79,114,.1);display:flex;align-items:center;justify-content:center;"><i class="fa-solid ' + s.icon + '" style="color:var(--primary);"></i></div>'+
+      '<div style="flex:1;"><div style="font-size:.85rem;font-weight:600;"><span class="ar-text">' + s.ar + '</span><span class="en-text">' + s.en + '</span></div></div>'+
+      '<div style="font-size:1.1rem;font-weight:800;color:var(--primary);">' + s.val + '</div>'+
+      '</div>';
+  }).join('');
+  App.applyLang();
+}
+
+function exportCSV() {
+  var rows = [['Name AR','Name EN','Email','Role','Progress %','Quiz Avg %','Status']];
+  emps.forEach(function(e) {
+    rows.push([e.name_ar, e.name_en, e.email, e.role_en, e.progress, e.quiz_avg, e.status]);
+  });
+  var csv = rows.map(function(r){return r.join(',');}).join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'spf-employees-report.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Build stats then charts
+App.applyLang();
+buildCharts();
+chartsBuilt = true;
+</script>
+</body>
+</html>
