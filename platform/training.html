@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>برامج التدريب — صندوق الحماية الاجتماعية</title>
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+.programs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:24px; margin-bottom:32px; }
+.program-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; transition:all .2s; }
+.program-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); }
+.program-header { padding:20px 20px 16px; background:linear-gradient(135deg,var(--primary) 0%,#0d2f45 100%); color:#fff; position:relative; overflow:hidden; }
+.program-header::after { content:''; position:absolute; top:-30px; left:-20px; width:150px; height:150px; background:rgba(255,255,255,.06); border-radius:50%; }
+.program-icon { font-size:2rem; margin-bottom:10px; }
+.program-title { font-size:1.05rem; font-weight:800; line-height:1.4; margin-bottom:4px; }
+.program-desc { font-size:.8rem; opacity:.8; line-height:1.5; }
+.program-body { padding:20px; }
+.program-stats { display:flex; gap:16px; margin-bottom:16px; }
+.program-stat { flex:1; text-align:center; padding:10px; background:var(--bg); border-radius:8px; }
+.program-stat .val { font-size:1.1rem; font-weight:800; color:var(--primary); }
+.program-stat .lbl { font-size:.7rem; color:var(--text-muted); }
+.prog-bar-wrap { margin-bottom:16px; }
+.prog-bar-label { display:flex; justify-content:space-between; font-size:.8rem; margin-bottom:4px; font-weight:600; }
+.prog-bar-track { background:var(--border); border-radius:999px; height:8px; }
+.prog-bar-fill { height:8px; border-radius:999px; background:linear-gradient(90deg,var(--primary),#2d80b5); transition:width .5s; }
+.modules-list { display:flex; flex-direction:column; gap:8px; }
+.module-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px; background:var(--bg); border:1px solid var(--border); cursor:pointer; transition:all .2s; }
+.module-item:hover:not(.locked) { border-color:var(--primary); }
+.module-item.locked { opacity:.55; cursor:not-allowed; }
+.module-status { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:.8rem; }
+.module-status.done { background:var(--success); color:#fff; }
+.module-status.active { background:var(--primary); color:#fff; }
+.module-status.locked { background:var(--border); color:var(--text-muted); }
+.module-info { flex:1; min-width:0; }
+.module-name { font-size:.88rem; font-weight:600; line-height:1.3; }
+.module-meta { font-size:.73rem; color:var(--text-muted); margin-top:2px; }
+.module-badge { font-size:.7rem; padding:2px 8px; border-radius:999px; font-weight:700; flex-shrink:0; }
+.badge-done { background:rgba(34,197,94,.15); color:#16a34a; }
+.badge-active { background:rgba(26,79,114,.15); color:var(--primary); }
+.badge-locked { background:var(--bg); color:var(--text-muted); border:1px solid var(--border); }
+.start-module-btn { margin-top:16px; width:100%; padding:11px; background:var(--primary); color:#fff; border:none; border-radius:9px; font-family:inherit; font-size:.95rem; font-weight:700; cursor:pointer; transition:opacity .2s; }
+.start-module-btn:hover { opacity:.88; }
+.start-module-btn:disabled { opacity:.4; cursor:not-allowed; }
+/* Modal */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal-box { background:var(--surface); border-radius:16px; padding:28px; max-width:520px; width:90%; max-height:85vh; overflow-y:auto; position:relative; }
+.modal-close { position:absolute; top:16px; left:16px; background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--text-muted); }
+body.ltr .modal-close { left:auto; right:16px; }
+.modal-header { margin-bottom:20px; }
+.modal-title { font-size:1.15rem; font-weight:800; margin-bottom:6px; }
+.modal-desc { font-size:.88rem; color:var(--text-muted); line-height:1.6; }
+.modal-sections { display:flex; flex-direction:column; gap:12px; }
+.modal-section { padding:14px; background:var(--bg); border-radius:10px; border:1px solid var(--border); }
+.modal-section-title { font-size:.85rem; font-weight:700; margin-bottom:6px; }
+.modal-section-body { font-size:.82rem; color:var(--text-muted); line-height:1.6; }
+.complete-btn { margin-top:20px; width:100%; padding:13px; background:var(--success); color:#fff; border:none; border-radius:10px; font-family:inherit; font-size:1rem; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="shell"></div>
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><span class="ar-text">برامج التدريب</span><span class="en-text">Training Programs</span></h1>
+      <p class="page-subtitle"><span class="ar-text">برامج تدريبية متخصصة لرفع كفاءة مقدمي الخدمة</span><span class="en-text">Specialized programs to boost service provider competency</span></p>
+    </div>
+  </div>
+  <div class="programs-grid" id="programsGrid"></div>
+</div>
+
+<!-- Module modal -->
+<div class="modal-overlay" id="moduleModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.requireAuth();
+document.getElementById('shell').innerHTML = buildSidebar('training.html') + buildTopbar('برامج التدريب','Training Programs');
+App.renderUserChip();
+App.markActiveNav();
+
+var activeProgram = null;
+var activeModule = null;
+
+function getProgramProgress(prog) {
+  var done = 0;
+  for (var i = 0; i < prog.modules.length; i++) {
+    var m = prog.modules[i];
+    if (App.getProgress('mod_' + prog.id + '_' + m.id) || m.status === 'done') done++;
+  }
+  return Math.round((done / prog.modules.length) * 100);
+}
+
+function buildProgramsGrid() {
+  var icons = ['🎓','🏆','💼'];
+  var grid = document.getElementById('programsGrid');
+  grid.innerHTML = SPF.training_programs.map(function(prog, pi) {
+    var pct = getProgramProgress(prog);
+    var doneCount = Math.round((pct / 100) * prog.modules.length);
+    var modulesHtml = prog.modules.map(function(m) {
+      var saved = App.getProgress('mod_' + prog.id + '_' + m.id);
+      var eff = saved ? 'done' : m.status;
+      var icon = eff === 'done' ? 'fa-check' : eff === 'active' ? 'fa-play' : 'fa-lock';
+      var badgeClass = eff === 'done' ? 'badge-done' : eff === 'active' ? 'badge-active' : 'badge-locked';
+      var badgeAr = eff === 'done' ? 'مكتمل' : eff === 'active' ? 'جاري' : 'مغلق';
+      var badgeEn = eff === 'done' ? 'Done' : eff === 'active' ? 'Active' : 'Locked';
+      return '<div class="module-item ' + (eff === 'locked' ? 'locked' : '') + '" onclick="openModule(' + prog.id + ',\'' + m.id + '\',' + (eff === 'locked' ? 'true' : 'false') + ')">' +
+        '<div class="module-status ' + eff + '"><i class="fa-solid ' + icon + '"></i></div>' +
+        '<div class="module-info"><div class="module-name"><span class="ar-text">' + m.title_ar + '</span><span class="en-text">' + m.title_en + '</span></div>' +
+        '<div class="module-meta"><span class="ar-text">' + m.duration + ' دقيقة</span><span class="en-text">' + m.duration + ' min</span></div></div>' +
+        '<span class="module-badge ' + badgeClass + '"><span class="ar-text">' + badgeAr + '</span><span class="en-text">' + badgeEn + '</span></span>' +
+        '</div>';
+    }).join('');
+    return '<div class="program-card">' +
+      '<div class="program-header">' +
+        '<div class="program-icon">' + icons[pi % icons.length] + '</div>' +
+        '<div class="program-title"><span class="ar-text">' + prog.title_ar + '</span><span class="en-text">' + prog.title_en + '</span></div>' +
+        '<div class="program-desc"><span class="ar-text">' + prog.desc_ar + '</span><span class="en-text">' + prog.desc_en + '</span></div>' +
+      '</div>' +
+      '<div class="program-body">' +
+        '<div class="program-stats">' +
+          '<div class="program-stat"><div class="val">' + prog.modules.length + '</div><div class="lbl"><span class="ar-text">وحدة</span><span class="en-text">Modules</span></div></div>' +
+          '<div class="program-stat"><div class="val">' + doneCount + '</div><div class="lbl"><span class="ar-text">مكتملة</span><span class="en-text">Done</span></div></div>' +
+          '<div class="program-stat"><div class="val">' + pct + '%</div><div class="lbl"><span class="ar-text">تقدم</span><span class="en-text">Progress</span></div></div>' +
+        '</div>' +
+        '<div class="prog-bar-wrap">' +
+          '<div class="prog-bar-label"><span><span class="ar-text">نسبة الإنجاز</span><span class="en-text">Completion</span></span><span style="color:var(--primary);">' + pct + '%</span></div>' +
+          '<div class="prog-bar-track"><div class="prog-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>' +
+        '<div class="modules-list" id="modules_' + prog.id + '">' + modulesHtml + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  App.applyLang();
+}
+
+function openModule(progId, modId, isLocked) {
+  if (isLocked) return;
+  activeProgram = progId;
+  activeModule = modId;
+  var prog = SPF.training_programs.find(function(p) { return p.id === progId; });
+  var mod = prog.modules.find(function(m) { return m.id === modId; });
+  var saved = App.getProgress('mod_' + progId + '_' + modId);
+  var isDone = saved || mod.status === 'done';
+  var sectionsHtml = (mod.sections || []).map(function(s) {
+    return '<div class="modal-section"><div class="modal-section-title"><span class="ar-text">' + s.title_ar + '</span><span class="en-text">' + s.title_en + '</span></div><div class="modal-section-body"><span class="ar-text">' + s.body_ar + '</span><span class="en-text">' + s.body_en + '</span></div></div>';
+  }).join('');
+  document.getElementById('modalContent').innerHTML =
+    '<div class="modal-header">' +
+      '<div class="modal-title"><span class="ar-text">' + mod.title_ar + '</span><span class="en-text">' + mod.title_en + '</span></div>' +
+      '<div class="modal-desc"><span class="ar-text">' + (mod.desc_ar || '') + '</span><span class="en-text">' + (mod.desc_en || '') + '</span></div>' +
+      '<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">' +
+        '<span style="font-size:.8rem;color:var(--text-muted);"><i class="fa-regular fa-clock"></i> <span class="ar-text">' + mod.duration + ' دقيقة</span><span class="en-text">' + mod.duration + ' minutes</span></span>' +
+        (isDone ? '<span style="font-size:.8rem;color:var(--success);font-weight:700;"><i class="fa-solid fa-circle-check"></i> <span class="ar-text">مكتملة</span><span class="en-text">Completed</span></span>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="modal-sections">' + (sectionsHtml || '<div class="modal-section"><div class="modal-section-body"><span class="ar-text">محتوى الوحدة سيتوفر قريباً</span><span class="en-text">Module content coming soon.</span></div></div>') + '</div>' +
+    (isDone
+      ? '<div style="margin-top:16px;padding:12px;background:rgba(34,197,94,.1);border-radius:8px;text-align:center;color:var(--success);font-weight:700;"><i class="fa-solid fa-check-double"></i> <span class="ar-text">لقد أتممت هذه الوحدة</span><span class="en-text">You have completed this module</span></div>'
+      : '<button class="complete-btn" onclick="completeModule(' + progId + ',\'' + modId + '\')"><i class="fa-solid fa-check"></i> <span class="ar-text">تميت هذه الوحدة</span><span class="en-text">Mark as Complete</span></button>');
+  document.getElementById('moduleModal').classList.add('open');
+  App.applyLang();
+}
+
+function completeModule(progId, modId) {
+  App.setProgress('mod_' + progId + '_' + modId, true);
+  closeModal();
+  buildProgramsGrid();
+}
+
+function closeModal() {
+  document.getElementById('moduleModal').classList.remove('open');
+}
+
+document.getElementById('moduleModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+buildProgramsGrid();
+</script>
+</body>
+</html>
