@@ -43,7 +43,6 @@
 .start-module-btn { margin-top:16px; width:100%; padding:11px; background:var(--primary); color:#fff; border:none; border-radius:9px; font-family:inherit; font-size:.95rem; font-weight:700; cursor:pointer; transition:opacity .2s; }
 .start-module-btn:hover { opacity:.88; }
 .start-module-btn:disabled { opacity:.4; cursor:not-allowed; }
-/* Modal */
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; }
 .modal-overlay.open { display:flex; }
 .modal-box { background:var(--surface); border-radius:16px; padding:28px; max-width:520px; width:90%; max-height:85vh; overflow-y:auto; position:relative; }
@@ -59,7 +58,7 @@ body.ltr .modal-close { left:auto; right:16px; }
 .complete-btn { margin-top:20px; width:100%; padding:13px; background:var(--success); color:#fff; border:none; border-radius:10px; font-family:inherit; font-size:1rem; font-weight:700; cursor:pointer; }
 </style>
 </head>
-<body>
+<body class="page-layout">
 <div id="shell"></div>
 <div class="page-content">
   <div class="page-header">
@@ -71,7 +70,6 @@ body.ltr .modal-close { left:auto; right:16px; }
   <div class="programs-grid" id="programsGrid"></div>
 </div>
 
-<!-- Module modal -->
 <div class="modal-overlay" id="moduleModal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
@@ -84,8 +82,7 @@ body.ltr .modal-close { left:auto; right:16px; }
 <script>
 App.requireAuth();
 document.getElementById('shell').innerHTML = buildSidebar('training.html') + buildTopbar('برامج التدريب','Training Programs');
-App.renderUserChip();
-App.markActiveNav();
+App.init();
 
 var activeProgram = null;
 var activeModule = null;
@@ -115,7 +112,7 @@ function buildProgramsGrid() {
       return '<div class="module-item ' + (eff === 'locked' ? 'locked' : '') + '" onclick="openModule(' + prog.id + ',\'' + m.id + '\',' + (eff === 'locked' ? 'true' : 'false') + ')">' +
         '<div class="module-status ' + eff + '"><i class="fa-solid ' + icon + '"></i></div>' +
         '<div class="module-info"><div class="module-name"><span class="ar-text">' + m.title_ar + '</span><span class="en-text">' + m.title_en + '</span></div>' +
-        '<div class="module-meta"><span class="ar-text">' + m.duration + ' دقيقة</span><span class="en-text">' + m.duration + ' min</span></div></div>' +
+        '<div class="module-meta"><span class="ar-text">' + (m.duration_ar||'') + '</span><span class="en-text">' + (m.duration_en||'') + '</span></div></div>' +
         '<span class="module-badge ' + badgeClass + '"><span class="ar-text">' + badgeAr + '</span><span class="en-text">' + badgeEn + '</span></span>' +
         '</div>';
     }).join('');
@@ -150,19 +147,15 @@ function openModule(progId, modId, isLocked) {
   var mod = prog.modules.find(function(m) { return m.id === modId; });
   var saved = App.getProgress('mod_' + progId + '_' + modId);
   var isDone = saved || mod.status === 'done';
-  var sectionsHtml = (mod.sections || []).map(function(s) {
-    return '<div class="modal-section"><div class="modal-section-title"><span class="ar-text">' + s.title_ar + '</span><span class="en-text">' + s.title_en + '</span></div><div class="modal-section-body"><span class="ar-text">' + s.body_ar + '</span><span class="en-text">' + s.body_en + '</span></div></div>';
-  }).join('');
   document.getElementById('modalContent').innerHTML =
     '<div class="modal-header">' +
       '<div class="modal-title"><span class="ar-text">' + mod.title_ar + '</span><span class="en-text">' + mod.title_en + '</span></div>' +
-      '<div class="modal-desc"><span class="ar-text">' + (mod.desc_ar || '') + '</span><span class="en-text">' + (mod.desc_en || '') + '</span></div>' +
       '<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">' +
-        '<span style="font-size:.8rem;color:var(--text-muted);"><i class="fa-regular fa-clock"></i> <span class="ar-text">' + mod.duration + ' دقيقة</span><span class="en-text">' + mod.duration + ' minutes</span></span>' +
+        '<span style="font-size:.8rem;color:var(--text-muted);"><i class="fa-regular fa-clock"></i> <span class="ar-text">' + (mod.duration_ar||'') + '</span><span class="en-text">' + (mod.duration_en||'') + '</span></span>' +
         (isDone ? '<span style="font-size:.8rem;color:var(--success);font-weight:700;"><i class="fa-solid fa-circle-check"></i> <span class="ar-text">مكتملة</span><span class="en-text">Completed</span></span>' : '') +
       '</div>' +
     '</div>' +
-    '<div class="modal-sections">' + (sectionsHtml || '<div class="modal-section"><div class="modal-section-body"><span class="ar-text">محتوى الوحدة سيتوفر قريباً</span><span class="en-text">Module content coming soon.</span></div></div>') + '</div>' +
+    '<div class="modal-sections"><div class="modal-section"><div class="modal-section-body"><span class="ar-text">محتوى الوحدة سيتوفر قريباً — يرجى مراجعة المواد المرفقة.</span><span class="en-text">Module content coming soon — please review attached materials.</span></div></div></div>' +
     (isDone
       ? '<div style="margin-top:16px;padding:12px;background:rgba(34,197,94,.1);border-radius:8px;text-align:center;color:var(--success);font-weight:700;"><i class="fa-solid fa-check-double"></i> <span class="ar-text">لقد أتممت هذه الوحدة</span><span class="en-text">You have completed this module</span></div>'
       : '<button class="complete-btn" onclick="completeModule(' + progId + ',\'' + modId + '\')"><i class="fa-solid fa-check"></i> <span class="ar-text">تميت هذه الوحدة</span><span class="en-text">Mark as Complete</span></button>');

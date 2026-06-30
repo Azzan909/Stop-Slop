@@ -28,11 +28,9 @@ body.ltr .kb-search-icon { right:auto; left:14px; }
 .kb-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
 .kb-tags { display:flex; gap:6px; flex-wrap:wrap; }
 .kb-tag { font-size:.7rem; padding:3px 9px; border-radius:999px; background:rgba(26,79,114,.08); color:var(--primary); font-weight:600; border:1px solid rgba(26,79,114,.15); }
-.kb-tag.gold { background:rgba(200,169,81,.1); color:#8a6d10; border-color:rgba(200,169,81,.2); }
-.read-more { font-size:.78rem; color:var(--primary); font-weight:700; display:flex; align-items:center; gap:4px; text-decoration:none; }
+.read-more { font-size:.78rem; color:var(--primary); font-weight:700; display:flex; align-items:center; gap:4px; }
 .no-results { text-align:center; padding:60px 20px; color:var(--text-muted); }
 .no-results i { font-size:2.5rem; margin-bottom:16px; }
-/* Article modal */
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; padding:16px; }
 .modal-overlay.open { display:flex; }
 .modal-box { background:var(--surface); border-radius:16px; padding:28px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto; position:relative; }
@@ -45,7 +43,7 @@ body.ltr .article-body ul { padding-right:0; padding-left:20px; }
 .article-body li { margin-bottom:6px; }
 </style>
 </head>
-<body>
+<body class="page-layout">
 <div id="shell"></div>
 <div class="page-content">
   <div class="page-header">
@@ -55,19 +53,13 @@ body.ltr .article-body ul { padding-right:0; padding-left:20px; }
     </div>
     <div style="font-size:.9rem;color:var(--text-muted);"><span id="resultCount"></span></div>
   </div>
-
-  <!-- Toolbar -->
   <div class="kb-toolbar">
     <div class="kb-search-wrap">
       <i class="fa-solid fa-magnifying-glass kb-search-icon"></i>
-      <input class="kb-search" type="text" id="kbSearch"
-        placeholder="ابحث عن مقال أو كلمة مفتاحية..."
-        oninput="filterArticles()">
+      <input class="kb-search" type="text" id="kbSearch" placeholder="ابحث عن مقالة أو كلمة مفتاحية..." oninput="filterArticles()">
     </div>
     <div class="filter-tabs" id="filterTabs"></div>
   </div>
-
-  <!-- Grid -->
   <div class="kb-grid" id="kbGrid"></div>
   <div class="no-results" id="noResults" style="display:none;">
     <i class="fa-solid fa-magnifying-glass"></i>
@@ -75,7 +67,6 @@ body.ltr .article-body ul { padding-right:0; padding-left:20px; }
   </div>
 </div>
 
-<!-- Article modal -->
 <div class="modal-overlay" id="articleModal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeArticle()"><i class="fa-solid fa-xmark"></i></button>
@@ -88,34 +79,28 @@ body.ltr .article-body ul { padding-right:0; padding-left:20px; }
 <script>
 App.requireAuth();
 document.getElementById('shell').innerHTML = buildSidebar('knowledge.html') + buildTopbar('قاعدة المعرفة','Knowledge Base');
-App.renderUserChip();
-App.markActiveNav();
+App.init();
 
 var allTags = [];
 SPF.knowledge_articles.forEach(function(a) {
-  (a.tags || []).forEach(function(t) { if (allTags.indexOf(t) < 0) allTags.push(t); });
+  if (a.tag_ar && allTags.findIndex(function(t) { return t.ar === a.tag_ar; }) < 0) {
+    allTags.push({ ar: a.tag_ar, en: a.tag_en });
+  }
 });
 var activeTag = null;
 
-var tagLabels = {
-  definitions: { ar: 'تعريفات', en: 'Definitions' },
-  benefits: { ar: 'المزايا', en: 'Benefits' },
-  contributions: { ar: 'الاشتراكات', en: 'Contributions' },
-  pensions: { ar: 'المعاشات', en: 'Pensions' },
-  procedures: { ar: 'الإجراءات', en: 'Procedures' },
-  insurance: { ar: 'التأمين', en: 'Insurance' },
-  registration: { ar: 'التسجيل', en: 'Registration' },
-  employer: { ar: 'صاحب العمل', en: 'Employer' }
+var iconMap = {
+  'التعريفات':'📚', 'المنافع':'🏆', 'التأمين':'🛡️', 'الاشتراكات':'💰',
+  'المعاشات':'🧓', 'الإجراءات':'📋', 'الحقوق':'⚖️', 'التقادم':'⏳',
+  'إصابات العمل':'🏥', 'الأمان الوظيفي':'💼', 'العجز':'♿', 'الأمومة':'👶'
 };
 
 function buildFilterTabs() {
-  var isLtr = document.body.classList.contains('ltr');
   var html = '<button class="filter-tab ' + (!activeTag ? 'active' : '') + '" onclick="setTag(null)">' +
     '<span class="ar-text">الكل</span><span class="en-text">All</span></button>';
   allTags.forEach(function(t) {
-    var lbl = tagLabels[t] || { ar: t, en: t };
-    html += '<button class="filter-tab ' + (activeTag === t ? 'active' : '') + '" onclick="setTag(\'' + t + '\')">' +
-      '<span class="ar-text">' + lbl.ar + '</span><span class="en-text">' + lbl.en + '</span></button>';
+    html += '<button class="filter-tab ' + (activeTag === t.ar ? 'active' : '') + '" onclick="setTag(\'' + t.ar.replace(/'/g,"\\'") + '\')">' +
+      '<span class="ar-text">' + t.ar + '</span><span class="en-text">' + t.en + '</span></button>';
   });
   document.getElementById('filterTabs').innerHTML = html;
 }
@@ -127,18 +112,17 @@ function setTag(tag) {
   App.applyLang();
 }
 
-var iconMap = { definitions:'📚', benefits:'🏆', contributions:'💰', pensions:'🧓', procedures:'📋', insurance:'🛡', registration:'📝', employer:'🏢' };
-
 function filterArticles() {
   var query = document.getElementById('kbSearch').value.toLowerCase().trim();
   var results = SPF.knowledge_articles.filter(function(a) {
-    var matchTag = !activeTag || (a.tags && a.tags.indexOf(activeTag) >= 0);
+    var matchTag = !activeTag || a.tag_ar === activeTag;
     var matchQuery = !query ||
       a.title_ar.toLowerCase().includes(query) ||
       a.title_en.toLowerCase().includes(query) ||
       (a.excerpt_ar || '').toLowerCase().includes(query) ||
       (a.excerpt_en || '').toLowerCase().includes(query) ||
-      (a.tags || []).join(' ').includes(query);
+      (a.tag_ar || '').includes(query) ||
+      (a.tag_en || '').toLowerCase().includes(query);
     return matchTag && matchQuery;
   });
   var countEl = document.getElementById('resultCount');
@@ -147,16 +131,13 @@ function filterArticles() {
   document.getElementById('noResults').style.display = results.length ? 'none' : '';
   if (results.length) {
     document.getElementById('kbGrid').innerHTML = results.map(function(a) {
-      var icon = iconMap[a.tags && a.tags[0]] || '📋';
-      var tagsHtml = (a.tags || []).map(function(t) {
-        var lbl = tagLabels[t] || { ar: t, en: t };
-        return '<span class="kb-tag"><span class="ar-text">' + lbl.ar + '</span><span class="en-text">' + lbl.en + '</span></span>';
-      }).join('');
+      var icon = iconMap[a.tag_ar] || '📋';
+      var tagHtml = '<span class="kb-tag"><span class="ar-text">' + (a.tag_ar||'') + '</span><span class="en-text">' + (a.tag_en||'') + '</span></span>';
       return '<div class="kb-card" onclick="openArticle(' + a.id + ')">' +
         '<div class="kb-card-top"><div class="kb-icon">' + icon + '</div>' +
         '<div class="kb-title"><span class="ar-text">' + a.title_ar + '</span><span class="en-text">' + a.title_en + '</span></div></div>' +
         '<div class="kb-excerpt"><span class="ar-text">' + (a.excerpt_ar || '') + '</span><span class="en-text">' + (a.excerpt_en || '') + '</span></div>' +
-        '<div class="kb-footer"><div class="kb-tags">' + tagsHtml + '</div>' +
+        '<div class="kb-footer"><div class="kb-tags">' + tagHtml + '</div>' +
         '<span class="read-more"><span class="ar-text">اقرأ المزيد</span><span class="en-text">Read more</span> <i class="fa-solid fa-arrow-left"></i></span></div>' +
         '</div>';
     }).join('');
@@ -167,16 +148,13 @@ function filterArticles() {
 function openArticle(id) {
   var a = SPF.knowledge_articles.find(function(x) { return x.id === id; });
   if (!a) return;
-  var tagsHtml = (a.tags || []).map(function(t) {
-    var lbl = tagLabels[t] || { ar: t, en: t };
-    return '<span class="kb-tag"><span class="ar-text">' + lbl.ar + '</span><span class="en-text">' + lbl.en + '</span></span>';
-  }).join('');
+  var tagHtml = '<span class="kb-tag"><span class="ar-text">' + (a.tag_ar||'') + '</span><span class="en-text">' + (a.tag_en||'') + '</span></span>';
   document.getElementById('articleContent').innerHTML =
     '<div style="margin-bottom:16px;">' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' + tagsHtml + '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' + tagHtml + '</div>' +
       '<h2 style="font-size:1.2rem;font-weight:800;margin-bottom:8px;"><span class="ar-text">' + a.title_ar + '</span><span class="en-text">' + a.title_en + '</span></h2>' +
     '</div>' +
-    '<div class="article-body"><span class="ar-text">' + (a.body_ar || a.excerpt_ar || 'المحتوى سيتوفر قريباً') + '</span><span class="en-text">' + (a.body_en || a.excerpt_en || 'Full content coming soon.') + '</span></div>';
+    '<div class="article-body"><span class="ar-text">' + (a.excerpt_ar || 'المحتوى سيتوفر قريباً') + '</span><span class="en-text">' + (a.excerpt_en || 'Full content coming soon.') + '</span></div>';
   document.getElementById('articleModal').classList.add('open');
   App.applyLang();
 }

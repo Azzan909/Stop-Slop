@@ -63,7 +63,8 @@ body.ltr .review-q.correct-q { border-left-color:var(--success); }
 body.ltr .review-q.wrong-q { border-left-color:var(--danger); }
 </style>
 </head>
-<body>
+<body class="page-layout">
+<canvas id="confettiCanvas"></canvas>
 <div id="shell"></div>
 <div class="page-content">
   <div class="quiz-shell">
@@ -75,11 +76,11 @@ body.ltr .review-q.wrong-q { border-left-color:var(--danger); }
 <script>
 App.requireAuth();
 document.getElementById('shell').innerHTML = buildSidebar('quiz.html') + buildTopbar('الاختبار','Quiz');
-App.renderUserChip();
-App.markActiveNav();
+App.init();
 const params = new URLSearchParams(window.location.search);
 const quizId = parseInt(params.get('quiz')) || 1;
 const quiz = SPF.quizzes.find(q => q.id === quizId);
+const PASS_SCORE = 70;
 if (!quiz) {
   document.getElementById('quizArea').innerHTML = '<div class="card" style="text-align:center;padding:40px;"><p>الاختبار غير موجود. <a href="quiz.html">العودة</a></p></div>';
 } else { startQuiz(); }
@@ -91,7 +92,7 @@ let quizDone = false;
 function startQuiz() {
   currentQ = 0;
   answers = new Array(quiz.questions.length).fill(null);
-  secondsLeft = quiz.time_limit * 60;
+  secondsLeft = (quiz.time_min || 15) * 60;
   quizDone = false;
   renderQuestion();
   startTimer();
@@ -195,9 +196,10 @@ function finishQuiz() {
   for (var i = 0; i < answers.length; i++) { if (answers[i] === quiz.questions[i].correct) correct++; }
   var total = quiz.questions.length;
   var score = Math.round((correct / total) * 100);
-  var passed = score >= quiz.pass_score;
+  var passed = score >= PASS_SCORE;
   App.saveQuizResult(quizId, score, correct, total);
-  var timeTaken = quiz.time_limit * 60 - secondsLeft;
+  if (passed) launchConfetti();
+  var timeTaken = (quiz.time_min || 15) * 60 - secondsLeft;
   var mins = Math.floor(timeTaken / 60);
   var secs = timeTaken % 60;
   var reviewHtml = '';
@@ -226,7 +228,7 @@ function finishQuiz() {
       '<div class="result-stats">' +
         '<div class="result-stat"><div class="val">' + correct + '/' + total + '</div><div class="lbl"><span class="ar-text">إجابات صحيحة</span><span class="en-text">Correct</span></div></div>' +
         '<div class="result-stat"><div class="val">' + mins + ':' + (secs < 10 ? '0' : '') + secs + '</div><div class="lbl"><span class="ar-text">وقت الإجابة</span><span class="en-text">Time Taken</span></div></div>' +
-        '<div class="result-stat"><div class="val" style="color:' + (passed ? 'var(--success)' : 'var(--danger)') + ';">' + quiz.pass_score + '%</div><div class="lbl"><span class="ar-text">درجة النجاح</span><span class="en-text">Pass Score</span></div></div>' +
+        '<div class="result-stat"><div class="val" style="color:' + (passed ? 'var(--success)' : 'var(--danger)') + ';">' + PASS_SCORE + '%</div><div class="lbl"><span class="ar-text">درجة النجاح</span><span class="en-text">Pass Score</span></div></div>' +
       '</div>' +
       '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;">' +
         '<button class="nav-btn secondary" onclick="window.location.href=\'quiz.html\'"><i class="fa-solid fa-list"></i><span class="ar-text"> كل الاختبارات</span><span class="en-text"> All Quizzes</span></button>' +
@@ -236,6 +238,47 @@ function finishQuiz() {
       '<div class="review-section"><h3 style="font-size:1rem;font-weight:700;margin-bottom:14px;border-bottom:2px solid var(--border);padding-bottom:10px;"><span class="ar-text">مراجعة الإجابات</span><span class="en-text">Answer Review</span></h3>' + reviewHtml + '</div>' +
     '</div>';
   App.applyLang();
+}
+
+function launchConfetti() {
+  var canvas = document.getElementById('confettiCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  var pieces = [];
+  var colors = ['#1A4F72','#C8A951','#22c55e','#ef4444','#a855f7','#3b82f6'];
+  for (var i = 0; i < 120; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height,
+      w: 8 + Math.random() * 8,
+      h: 5 + Math.random() * 5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vy: 2 + Math.random() * 4,
+      vx: (Math.random() - 0.5) * 3,
+      rot: Math.random() * 360,
+      rotV: (Math.random() - 0.5) * 6
+    });
+  }
+  var frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(function(p) {
+      p.y += p.vy; p.x += p.vx; p.rot += p.rotV;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, 1 - frame / 120);
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+    });
+    frame++;
+    if (frame < 140) requestAnimationFrame(draw);
+    else { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+  }
+  draw();
 }
 </script>
 </body>
