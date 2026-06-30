@@ -33,7 +33,7 @@
 @media(max-width:700px){.summary-bar{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
-<body>
+<body class="page-layout">
 <div id="shell"></div>
 <div class="page-content">
   <div class="page-header">
@@ -42,11 +42,7 @@
       <p class="page-subtitle"><span class="ar-text">اختبر معرفتك بقانون الحماية الاجتماعية</span><span class="en-text">Test your knowledge of Social Protection Law</span></p>
     </div>
   </div>
-
-  <!-- Summary bar -->
   <div class="summary-bar" id="summaryBar"></div>
-
-  <!-- Quiz grid -->
   <div class="quiz-grid" id="quizGrid"></div>
 </div>
 
@@ -55,27 +51,30 @@
 <script>
 App.requireAuth();
 document.getElementById('shell').innerHTML = buildSidebar('quiz.html') + buildTopbar('الاختبارات الدورية','Periodic Quizzes');
-App.renderUserChip();
-App.markActiveNav();
+App.init();
 
-const diffLabels = {
-  easy:   { ar: 'سهل',     en: 'Easy',   cls: 'diff-easy' },
-  medium: { ar: 'متوسط',   en: 'Medium', cls: 'diff-medium' },
-  hard:   { ar: 'صعب',     en: 'Hard',   cls: 'diff-hard' }
-};
+function getLevelInfo(q) {
+  const ar = q.level_ar || 'متوسط';
+  const en = q.level_en || 'Medium';
+  if (ar === 'مبتدئ') return { ar, en, cls: 'diff-easy' };
+  if (ar === 'متقدم' || ar === 'صعب') return { ar, en, cls: 'diff-hard' };
+  return { ar, en, cls: 'diff-medium' };
+}
 
 function buildSummary() {
   const results = App.getQuizResults();
-  const taken = Object.keys(results).length;
-  let totalScore = 0, count = 0;
-  Object.values(results).forEach(r => { totalScore += r.score; count++; });
-  const avg = count ? Math.round(totalScore/count) : 0;
-  const passed = Object.values(results).filter(r => r.score >= 60).length;
+  const latestResults = Object.keys(results).map(id => {
+    const arr = results[id];
+    return arr[arr.length - 1];
+  });
+  const taken = latestResults.length;
+  const avg = taken ? Math.round(latestResults.reduce((s,r) => s + r.score, 0) / taken) : 0;
+  const passed = latestResults.filter(r => r.score >= 70).length;
 
   document.getElementById('summaryBar').innerHTML = [
     { icon: 'fa-list-check',    val: SPF.quizzes.length, label_ar: 'إجمالي الاختبارات', label_en: 'Total Quizzes',  color: 'var(--primary)' },
     { icon: 'fa-circle-check',  val: taken,              label_ar: 'اختبارات أُدِّيت',  label_en: 'Taken',          color: 'var(--success)' },
-    { icon: 'fa-trophy',        val: avg+'%',            label_ar: 'متوسط الدرجات',     label_en: 'Average Score',  color: 'var(--gold)' },
+    { icon: 'fa-trophy',        val: avg ? avg+'%' : '--', label_ar: 'متوسط الدرجات',   label_en: 'Average Score',  color: 'var(--gold)' },
     { icon: 'fa-medal',         val: passed,             label_ar: 'اختبارات ناجحة',   label_en: 'Passed',         color: '#a855f7' }
   ].map(item => `
     <div class="stat-card">
@@ -90,13 +89,13 @@ function buildSummary() {
 }
 
 function buildQuizGrid() {
-  const results = App.getQuizResults();
   const icons = ['fa-book','fa-hand-holding-heart','fa-shield-halved','fa-file-contract','fa-building-columns','fa-star'];
+  const PASS_SCORE = 70;
 
   document.getElementById('quizGrid').innerHTML = SPF.quizzes.map((q,i) => {
-    const result = results[q.id];
-    const score = result ? result.score : null;
-    const dl = diffLabels[q.difficulty] || diffLabels.medium;
+    const lastResult = App.getLastQuizResult(q.id);
+    const score = lastResult ? lastResult.score : null;
+    const dl = getLevelInfo(q);
     const scoreColor = score === null ? 'var(--border)' : score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--gold)' : 'var(--danger)';
 
     return `
@@ -106,8 +105,8 @@ function buildQuizGrid() {
       <div class="quiz-title"><span class="ar-text">${q.title_ar}</span><span class="en-text">${q.title_en}</span></div>
       <div class="quiz-meta">
         <span><i class="fa-regular fa-circle-question"></i> <span class="ar-text">${q.questions.length} سؤال</span><span class="en-text">${q.questions.length} Questions</span></span>
-        <span><i class="fa-regular fa-clock"></i> <span class="ar-text">${q.time_limit} دقيقة</span><span class="en-text">${q.time_limit} min</span></span>
-        <span><i class="fa-solid fa-bullseye"></i> <span class="ar-text">النجاح: ${q.pass_score}%</span><span class="en-text">Pass: ${q.pass_score}%</span></span>
+        <span><i class="fa-regular fa-clock"></i> <span class="ar-text">${q.time_min} دقيقة</span><span class="en-text">${q.time_min} min</span></span>
+        <span><i class="fa-solid fa-bullseye"></i> <span class="ar-text">النجاح: ${PASS_SCORE}%</span><span class="en-text">Pass: ${PASS_SCORE}%</span></span>
       </div>
       <div class="quiz-score-bar">
         <div class="label">
@@ -117,8 +116,8 @@ function buildQuizGrid() {
         <div class="bar"><div class="fill" style="width:${score||0}%;background:${scoreColor};"></div></div>
       </div>
       ${score !== null ? `
-        <div style="font-size:.8rem;text-align:center;margin-bottom:10px;padding:6px;border-radius:6px;background:${score>=q.pass_score?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)'};color:${score>=q.pass_score?'var(--success)':'var(--danger)'};font-weight:600;">
-          ${score>=q.pass_score
+        <div style="font-size:.8rem;text-align:center;margin-bottom:10px;padding:6px;border-radius:6px;background:${score>=PASS_SCORE?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)'};color:${score>=PASS_SCORE?'var(--success)':'var(--danger)'};font-weight:600;">
+          ${score>=PASS_SCORE
             ? '<span class="ar-text">✓ ناجح</span><span class="en-text">✓ Passed</span>'
             : '<span class="ar-text">✗ يحتاج مراجعة</span><span class="en-text">✗ Needs Review</span>'}
         </div>` : ''}

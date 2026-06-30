@@ -40,7 +40,7 @@ body.ltr .article-block { border-right: none; border-left: 4px solid var(--prima
 @media(max-width:900px){.laws-layout{flex-direction:column;}.chapters-list{width:100%;}}
 </style>
 </head>
-<body>
+<body class="page-layout">
 <div id="shell"></div>
 <div class="page-content">
   <div class="page-header">
@@ -61,10 +61,7 @@ body.ltr .article-block { border-right: none; border-left: 4px solid var(--prima
   </div>
 
   <div class="laws-layout">
-    <!-- Chapters list -->
     <div class="chapters-list" id="chaptersList"></div>
-
-    <!-- Chapter viewer -->
     <div class="chapter-viewer">
       <div class="card" id="chapterViewer">
         <div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
@@ -81,8 +78,7 @@ body.ltr .article-block { border-right: none; border-left: 4px solid var(--prima
 <script>
 App.requireAuth();
 document.getElementById('shell').innerHTML = buildSidebar('laws.html') + buildTopbar('القوانين والأنظمة','Laws & Regulations');
-App.renderUserChip();
-App.markActiveNav();
+App.init();
 
 let currentChapter = null;
 
@@ -121,7 +117,6 @@ function buildChaptersList() {
 
 function openChapter(id) {
   currentChapter = id;
-  // highlight
   document.querySelectorAll('.chapter-card').forEach(el => el.classList.remove('active'));
   document.getElementById('chCard_'+id).classList.add('active');
 
@@ -150,22 +145,22 @@ function openChapter(id) {
     </div>
 
     <div class="viewer-tabs">
-      <button class="viewer-tab active" onclick="switchTab('text',${'`'}text-tab${'`'})" id="tab-text">
+      <button class="viewer-tab active" onclick="switchTab('text','text-tab')" id="tab-text">
         <i class="fa-solid fa-file-lines"></i>
         <span class="ar-text"> النص القانوني</span><span class="en-text"> Legal Text</span>
       </button>
-      <button class="viewer-tab" onclick="switchTab('video',${'`'}video-tab${'`'})" id="tab-video">
+      <button class="viewer-tab" onclick="switchTab('video','video-tab')" id="tab-video">
         <i class="fa-solid fa-play-circle"></i>
         <span class="ar-text"> فيديو شرح</span><span class="en-text"> Explainer Video</span>
       </button>
-      <button class="viewer-tab" onclick="switchTab('audio',${'`'}audio-tab${'`'})" id="tab-audio">
+      <button class="viewer-tab" onclick="switchTab('audio','audio-tab')" id="tab-audio">
         <i class="fa-solid fa-headphones"></i>
         <span class="ar-text"> ملف صوتي</span><span class="en-text"> Audio</span>
       </button>
     </div>
 
     <div class="tab-panel active" id="text-tab">
-      ${ch.content_html}
+      ${ch.content_ar}
     </div>
 
     <div class="tab-panel" id="video-tab">
@@ -173,16 +168,6 @@ function openChapter(id) {
         <i class="fa-solid fa-film"></i>
         <h3><span class="ar-text">فيديو شرح الفصل: ${ch.title_ar}</span><span class="en-text">Chapter Explainer: ${ch.title_en}</span></h3>
         <p><span class="ar-text">سيتم رفع مقاطع الفيديو التوضيحية قريباً</span><span class="en-text">Explainer videos will be uploaded soon</span></p>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
-        ${(ch.videos||[]).map(v=>`
-          <div style="background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--border);">
-            <div style="background:#e8f0f7;border-radius:6px;height:90px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
-              <i class="fa-solid fa-play-circle" style="font-size:2rem;color:var(--primary);"></i>
-            </div>
-            <div style="font-size:.85rem;font-weight:600;">${v.title_ar}</div>
-            <div style="font-size:.75rem;color:var(--text-muted);">${v.duration}</div>
-          </div>`).join('')}
       </div>
     </div>
 
@@ -198,12 +183,6 @@ function openChapter(id) {
           <span style="font-size:.8rem;opacity:.8;"><span class="ar-text">الملف الصوتي قيد الإعداد</span><span class="en-text">Audio file coming soon</span></span>
         </div>
       </div>
-      ${(ch.videos||[]).slice(0,2).map(v=>`
-      <div class="audio-placeholder">
-        <i class="fa-solid fa-headphones"></i>
-        <div style="font-size:.85rem;font-weight:600;">${v.title_ar}</div>
-        <div style="font-size:.75rem;margin-top:4px;">${v.duration} دقيقة</div>
-      </div>`).join('')}
     </div>
 
     <button class="chapter-complete-btn ${done?'done':''}" onclick="markDone(${id})">
@@ -226,7 +205,6 @@ function markDone(id) {
   App.setProgress('ch_'+id, true);
   buildChaptersList();
   updateChapDone();
-  // refresh viewer button
   const btn = document.querySelector('.chapter-complete-btn');
   if(btn) {
     btn.classList.add('done');
@@ -237,7 +215,6 @@ function markDone(id) {
 
 buildChaptersList();
 updateChapDone();
-// Auto-open first chapter
 if(SPF.chapters.length) openChapter(SPF.chapters[0].id);
 </script>
 </body>

@@ -61,8 +61,9 @@ const t = (a,e) => isAr ? a : e;
 
 const quizResults = JSON.parse(localStorage.getItem('spf_quiz_results') || '{}');
 const completedQuizzes = Object.keys(quizResults).length;
-const avgScore = completedQuizzes > 0
-  ? Math.round(Object.values(quizResults).flatMap(r=>r).reduce((s,r)=>s+Math.round(r.score/r.total*100),0) / Object.values(quizResults).flatMap(r=>r).length)
+const latestAttempts = Object.values(quizResults).map(arr => arr[arr.length-1]);
+const avgScore = latestAttempts.length > 0
+  ? Math.round(latestAttempts.reduce((s,r) => s + r.score, 0) / latestAttempts.length)
   : 0;
 
 document.getElementById('shell').innerHTML = buildSidebar('dashboard.html') + `
@@ -195,20 +196,27 @@ App.lang = lang;
 App.user = user;
 App.applyLang();
 App.bindLangToggle();
+App.applyDark();
+App.restoreSidebar();
 
 const today = new Date();
 document.getElementById('todayDate').textContent = today.toLocaleDateString(isAr?'ar-OM':'en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
+const allResults = App.getQuizResults();
+const chartScores = SPF.quizzes.map(q => {
+  const arr = allResults[q.id];
+  if (!arr || !arr.length) return 0;
+  return arr[arr.length-1].score;
+});
+const chartColors = chartScores.map(s => s > 0 ? (s >= 80 ? '#22c55e' : s >= 60 ? '#C8A951' : '#ef4444') : '#E2E8F0');
 new Chart(document.getElementById('quizChart'), {
   type:'bar',
   data:{
-    labels: isAr
-      ? ['التعريفات','فروع المنافع','فروع التأمين','إجراءات الخدمة','الاستعداد']
-      : ['Definitions','Benefit Branches','Insurance','Procedures','Readiness'],
+    labels: SPF.quizzes.map(q => isAr ? q.title_ar.split(':')[0] : q.title_en.split(':')[0]),
     datasets:[{
       label: isAr ? 'النتيجة %' : 'Score %',
-      data:[88,72,0,0,0],
-      backgroundColor:['#2E86C1','#27AE60','#E2E8F0','#E2E8F0','#E2E8F0'],
+      data: chartScores,
+      backgroundColor: chartColors,
       borderRadius:8, borderSkipped:false
     }]
   },
