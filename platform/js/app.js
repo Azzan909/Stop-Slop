@@ -7,8 +7,10 @@ const App = {
   init() {
     this.applyLang();
     this.bindLangToggle();
+    this.applyDark();
     this.renderUserChip();
     this.markActiveNav();
+    this.restoreSidebar();
   },
 
   applyLang() {
@@ -23,7 +25,7 @@ const App = {
     if (btn) btn.addEventListener('click', () => {
       this.lang = this.lang === 'ar' ? 'en' : 'ar';
       localStorage.setItem('spf_lang', this.lang);
-      this.applyLang();
+      location.reload();
     });
   },
 
@@ -31,8 +33,8 @@ const App = {
     return this.lang === 'ar' ? ar : en;
   },
 
-  login(name_ar, name_en, role) {
-    const user = { name_ar, name_en, role, loginTime: Date.now() };
+  login(name_ar, name_en, role, department_ar, department_en, email) {
+    const user = { name_ar, name_en, role, department_ar, department_en, email, loginTime: Date.now() };
     localStorage.setItem('spf_user', JSON.stringify(user));
     this.user = user;
   },
@@ -67,8 +69,10 @@ const App = {
     });
   },
 
-  getProgress() {
-    return JSON.parse(localStorage.getItem('spf_progress') || '{}');
+  // Progress tracking — accepts optional key param
+  getProgress(key) {
+    const p = JSON.parse(localStorage.getItem('spf_progress') || '{}');
+    return key !== undefined ? p[key] : p;
   },
 
   setProgress(key, val) {
@@ -77,22 +81,59 @@ const App = {
     localStorage.setItem('spf_progress', JSON.stringify(p));
   },
 
+  // Quiz results — stored as { quizId: [{score, correct, total, date}, ...] }
   getQuizResults() {
     return JSON.parse(localStorage.getItem('spf_quiz_results') || '{}');
   },
 
-  saveQuizResult(quizId, score, total) {
+  saveQuizResult(quizId, score, correct, total) {
     const r = this.getQuizResults();
     if (!r[quizId]) r[quizId] = [];
-    r[quizId].push({ score, total, date: new Date().toLocaleDateString('ar-OM') });
+    r[quizId].push({ score, correct, total, date: new Date().toLocaleDateString('ar-OM') });
     localStorage.setItem('spf_quiz_results', JSON.stringify(r));
   },
 
-  getLastQuizScore(quizId) {
+  // Returns last attempt object { score, correct, total, date } or null
+  getLastQuizResult(quizId) {
     const r = this.getQuizResults();
     const arr = r[quizId];
     if (!arr || !arr.length) return null;
     return arr[arr.length - 1];
+  },
+
+  // Dark mode
+  applyDark() {
+    const dark = localStorage.getItem('spf_dark') === '1';
+    document.body.classList.toggle('dark', dark);
+    const btn = document.getElementById('darkToggle');
+    if (btn) btn.innerHTML = dark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+  },
+
+  toggleDark() {
+    const isDark = document.body.classList.toggle('dark');
+    localStorage.setItem('spf_dark', isDark ? '1' : '0');
+    const btn = document.getElementById('darkToggle');
+    if (btn) btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+  },
+
+  // Sidebar collapse
+  restoreSidebar() {
+    const collapsed = localStorage.getItem('spf_sidebar') === '1';
+    if (collapsed) {
+      const sidebar = document.getElementById('sidebar');
+      const content = document.querySelector('.page-content') || document.querySelector('.main-content');
+      if (sidebar) sidebar.classList.add('collapsed');
+      if (content) content.classList.add('sidebar-collapsed');
+    }
+  },
+
+  toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const content = document.querySelector('.page-content') || document.querySelector('.main-content');
+    if (!sidebar) return;
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    if (content) content.classList.toggle('sidebar-collapsed', isCollapsed);
+    localStorage.setItem('spf_sidebar', isCollapsed ? '1' : '0');
   }
 };
 
@@ -119,16 +160,19 @@ function buildSidebar(activePage) {
         <p class="ar-text">منصة التعلم</p>
         <p class="en-text">Learning Platform</p>
       </div>
+      <button class="sidebar-close-btn" onclick="App.toggleSidebar()" title="طي القائمة">
+        <i class="fas fa-chevron-right"></i>
+      </button>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-group">
         <div class="nav-label ar-text">القائمة الرئيسية</div>
         <div class="nav-label en-text">MAIN MENU</div>
         ${navItems.map(item => `
-          <a href="${item.page}" class="nav-item ${activePage === item.page ? 'active' : ''}" data-page="${item.page}">
+          <a href="${item.page}" class="nav-item ${activePage === item.page ? 'active' : ''}" data-page="${item.page}" title="${item.ar} / ${item.en}">
             <i class="fas ${item.icon}"></i>
-            <span class="ar-text">${item.ar}</span>
-            <span class="en-text">${item.en}</span>
+            <span class="nav-item-text ar-text">${item.ar}</span>
+            <span class="nav-item-text en-text">${item.en}</span>
             ${item.badge ? `<span class="nav-badge">${item.badge}</span>` : ''}
           </a>`).join('')}
       </div>
@@ -149,11 +193,19 @@ function buildSidebar(activePage) {
 function buildTopbar(title_ar, title_en) {
   return `
   <header class="topbar">
-    <h1 class="topbar-title">
-      <span class="ar-text">${title_ar}</span>
-      <span class="en-text">${title_en}</span>
-    </h1>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="icon-btn" onclick="App.toggleSidebar()" id="sidebarToggle" title="إخفاء/إظهار القائمة">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1 class="topbar-title">
+        <span class="ar-text">${title_ar}</span>
+        <span class="en-text">${title_en}</span>
+      </h1>
+    </div>
     <div class="topbar-actions">
+      <button class="icon-btn" id="darkToggle" onclick="App.toggleDark()" title="الوضع الليلي">
+        <i class="fas fa-moon"></i>
+      </button>
       <button class="lang-toggle" id="langToggle">EN</button>
       <div class="notif-btn"><i class="fas fa-bell"></i><span class="notif-dot"></span></div>
     </div>
