@@ -57,7 +57,7 @@ body.ltr .score-dot { margin-left:0; margin-right:4px; }
 .tab-nav-btn.active { background:var(--surface); color:var(--primary); box-shadow:var(--shadow); }
 </style>
 </head>
-<body>
+<body class="page-layout">
 <div id="shell"></div>
 <div class="page-content">
   <div class="page-header">
@@ -155,8 +155,7 @@ if (user.role !== 'admin') {
   throw new Error('Not admin');
 }
 document.getElementById('shell').innerHTML = buildSidebar('admin.html') + buildTopbar('لوحة الإدارة','Admin Dashboard');
-App.renderUserChip();
-App.markActiveNav();
+App.init();
 
 var currentTab = 'overview';
 
@@ -176,9 +175,21 @@ function switchAdminTab(tab, btn) {
 // Build stats
 var emps = SPF.employees;
 var avgProgress = Math.round(emps.reduce(function(s,e){return s+e.progress;},0)/emps.length);
-var avgQuiz = Math.round(emps.reduce(function(s,e){return s+e.quiz_avg;},0)/emps.length);
-var activeCount = emps.filter(function(e){return e.status==='active';}).length;
-var needsReview = emps.filter(function(e){return e.quiz_avg<60;}).length;
+var avgQuiz = Math.round(emps.reduce(function(s,e){return s+e.quizAvg;},0)/emps.length);
+var activeCount = emps.filter(function(e){return e.status==='advanced'||e.status==='qualified';}).length;
+var needsReview = emps.filter(function(e){return e.quizAvg<60;}).length;
+
+// Helper: generate email from English name
+function empEmail(e) {
+  return e.name_en.toLowerCase().replace(/\s+/g,'.') + '@spf.gov.om';
+}
+
+// Helper: get CSS class and labels for status
+function empStatusInfo(e) {
+  if (e.status === 'advanced' || e.status === 'qualified') return { cls: 'status-active', ar: e.status_ar || 'متقدم', en: e.status === 'qualified' ? 'Qualified' : 'Advanced' };
+  if (e.status === 'training') return { cls: 'status-training', ar: e.status_ar || 'قيد التدريب', en: 'In Training' };
+  return { cls: 'status-review', ar: e.status_ar || 'مبتدئ', en: 'Beginner' };
+}
 
 document.getElementById('adminStats').innerHTML = [
   { cls:'blue',   icon:'fa-users',           val:emps.length,    ar:'إجمالي الموظفين',   en:'Total Employees' },
@@ -198,7 +209,7 @@ var chartsBuilt = false;
 function buildCharts() {
   var isLtr = document.body.classList.contains('ltr');
   var names = emps.map(function(e) { return isLtr ? e.name_en : e.name_ar; });
-  var scores = emps.map(function(e) { return e.quiz_avg; });
+  var scores = emps.map(function(e) { return e.quizAvg; });
   var progresses = emps.map(function(e) { return e.progress; });
 
   var primaryColor = '#1A4F72';
@@ -236,7 +247,7 @@ function buildCharts() {
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
   });
 
-  // Chapters radar-style bar
+  // Combined bar chart
   new Chart(document.getElementById('chartChapters'), {
     type: 'bar',
     data: {
@@ -257,24 +268,22 @@ function buildCharts() {
 function buildEmployeeTable() {
   var query = (document.getElementById('empSearch').value || '').toLowerCase();
   var filtered = emps.filter(function(e) {
-    return !query || e.name_ar.toLowerCase().includes(query) || e.name_en.toLowerCase().includes(query) || e.email.toLowerCase().includes(query);
+    var email = empEmail(e);
+    return !query || e.name_ar.toLowerCase().includes(query) || e.name_en.toLowerCase().includes(query) || email.includes(query);
   });
-  var isLtr = document.body.classList.contains('ltr');
   document.getElementById('empCount').innerHTML =
     '<span class="ar-text">' + filtered.length + ' موظف</span><span class="en-text">' + filtered.length + ' employees</span>';
   document.getElementById('empTableBody').innerHTML = filtered.map(function(e) {
     var initials = e.name_en.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
-    var statusCls = e.status === 'active' ? 'status-active' : e.status === 'training' ? 'status-training' : 'status-review';
-    var statusAr = e.status === 'active' ? 'نشط' : e.status === 'training' ? 'تدريب' : 'يحتاج مراجعة';
-    var statusEn = e.status === 'active' ? 'Active' : e.status === 'training' ? 'Training' : 'Needs Review';
-    var scoreColor = e.quiz_avg >= 80 ? 'var(--success)' : e.quiz_avg >= 60 ? 'var(--gold)' : 'var(--danger)';
+    var si = empStatusInfo(e);
+    var scoreColor = e.quizAvg >= 80 ? 'var(--success)' : e.quizAvg >= 60 ? 'var(--gold)' : 'var(--danger)';
     return '<tr>' +
-      '<td><div class="emp-info"><div class="emp-avatar">' + initials + '</div><div><div class="emp-name"><span class="ar-text">' + e.name_ar + '</span><span class="en-text">' + e.name_en + '</span></div><div class="emp-email">' + e.email + '</div></div></div></td>' +
-      '<td><span class="ar-text">' + e.role_ar + '</span><span class="en-text">' + e.role_en + '</span></td>' +
+      '<td><div class="emp-info"><div class="emp-avatar">' + initials + '</div><div><div class="emp-name"><span class="ar-text">' + e.name_ar + '</span><span class="en-text">' + e.name_en + '</span></div><div class="emp-email">' + empEmail(e) + '</div></div></div></td>' +
+      '<td><span class="ar-text">' + (e.dept_ar||'') + '</span><span class="en-text">' + (e.dept_en||'') + '</span></td>' +
       '<td><div style="display:flex;align-items:center;gap:8px;"><div class="mini-bar"><div class="mini-bar-fill" style="width:' + e.progress + '%;"></div></div><span style="font-size:.78rem;font-weight:600;">' + e.progress + '%</span></div></td>' +
-      '<td><span style="color:' + scoreColor + ';font-weight:700;">' + e.quiz_avg + '%</span></td>' +
-      '<td><span class="status-badge ' + statusCls + '"><span class="ar-text">' + statusAr + '</span><span class="en-text">' + statusEn + '</span></span></td>' +
-      '<td><button class="action-btn" onclick="viewEmployee(\'' + e.email + '\')"><span class="ar-text">عرض</span><span class="en-text">View</span></button></td>' +
+      '<td><span style="color:' + scoreColor + ';font-weight:700;">' + e.quizAvg + '%</span></td>' +
+      '<td><span class="status-badge ' + si.cls + '"><span class="ar-text">' + si.ar + '</span><span class="en-text">' + si.en + '</span></span></td>' +
+      '<td><button class="action-btn" onclick="viewEmployee(' + e.id + ')"><span class="ar-text">عرض</span><span class="en-text">View</span></button></td>' +
       '</tr>';
   }).join('');
   App.applyLang();
@@ -282,19 +291,21 @@ function buildEmployeeTable() {
 
 function filterEmployees() { buildEmployeeTable(); }
 
-function viewEmployee(email) {
-  var e = emps.find(function(x) { return x.email === email; });
+function viewEmployee(id) {
+  var e = emps.find(function(x) { return x.id === id; });
   if (!e) return;
-  alert((document.body.classList.contains('ltr') ? e.name_en : e.name_ar) + '\n' +
-    (document.body.classList.contains('ltr') ? 'Progress: ' : 'التقدم: ') + e.progress + '%\n' +
-    (document.body.classList.contains('ltr') ? 'Quiz Avg: ' : 'متوسط الاختبار: ') + e.quiz_avg + '%');
+  var isLtr = document.body.classList.contains('ltr');
+  alert((isLtr ? e.name_en : e.name_ar) + '\n' +
+    (isLtr ? 'Department: ' : 'الدائرة: ') + (isLtr ? e.dept_en : e.dept_ar) + '\n' +
+    (isLtr ? 'Progress: ' : 'التقدم: ') + e.progress + '%\n' +
+    (isLtr ? 'Quiz Avg: ' : 'متوسط الاختبار: ') + e.quizAvg + '%');
 }
 
 function buildReports() {
   var quizRows = SPF.quizzes.map(function(q) {
     return '<tr><td style="padding:8px 4px;font-size:.85rem;"><span class="ar-text">' + q.title_ar + '</span><span class="en-text">' + q.title_en + '</span></td>' +
       '<td style="padding:8px 4px;font-size:.85rem;text-align:center;">' + q.questions.length + '</td>' +
-      '<td style="padding:8px 4px;font-size:.85rem;text-align:center;color:var(--primary);font-weight:700;">' + q.pass_score + '%</td></tr>';
+      '<td style="padding:8px 4px;font-size:.85rem;text-align:center;color:var(--primary);font-weight:700;">70%</td></tr>';
   }).join('');
   document.getElementById('quizSummaryTable').innerHTML =
     '<table style="width:100%;border-collapse:collapse;">' +
@@ -321,9 +332,9 @@ function buildReports() {
 }
 
 function exportCSV() {
-  var rows = [['Name AR','Name EN','Email','Role','Progress %','Quiz Avg %','Status']];
+  var rows = [['Name AR','Name EN','Email','Department','Progress %','Quiz Avg %','Status']];
   emps.forEach(function(e) {
-    rows.push([e.name_ar, e.name_en, e.email, e.role_en, e.progress, e.quiz_avg, e.status]);
+    rows.push([e.name_ar, e.name_en, empEmail(e), e.dept_en||'', e.progress, e.quizAvg, e.status]);
   });
   var csv = rows.map(function(r){return r.join(',');}).join('\n');
   var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
