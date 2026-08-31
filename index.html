@@ -1,11 +1,177 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=platform/index.html">
-<title>صندوق الحماية الاجتماعية — منصة التدريب</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>صندوق الحماية الاجتماعية — منصة التعلم</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+body { background: var(--bg); }
+.login-page { min-height:100vh; display:flex; }
+.login-art {
+  flex:1; background:linear-gradient(135deg,#0D2B3E 0%,#1A4F72 55%,#2E86C1 100%);
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; padding:60px; position:relative; overflow:hidden;
+}
+.login-art::before {
+  content:''; position:absolute;
+  width:500px; height:500px; border-radius:50%;
+  background:rgba(200,169,81,.12); top:-150px; left:-100px;
+}
+.login-art::after {
+  content:''; position:absolute;
+  width:350px; height:350px; border-radius:50%;
+  background:rgba(255,255,255,.05); bottom:-100px; right:-80px;
+}
+.art-logo { font-size:72px; margin-bottom:24px; position:relative; z-index:1; }
+.art-title { font-size:28px; font-weight:800; color:#fff; text-align:center; margin-bottom:12px; position:relative; z-index:1; line-height:1.4; }
+.art-sub { font-size:15px; color:rgba(255,255,255,.6); text-align:center; position:relative; z-index:1; }
+.art-badges { display:flex; gap:12px; margin-top:36px; position:relative; z-index:1; flex-wrap:wrap; justify-content:center; }
+.art-badge {
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15);
+  border-radius:20px; padding:8px 16px; font-size:12px; color:rgba(255,255,255,.8);
+  display:flex; align-items:center; gap:6px;
+}
+.login-form-wrap {
+  width:480px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:60px 50px; background:#fff;
+}
+.login-form-inner { width:100%; }
+.form-logo { text-align:center; margin-bottom:32px; }
+.form-logo .logo-icon2 {
+  width:64px; height:64px; border-radius:14px;
+  background:linear-gradient(135deg,#1A4F72,#2E86C1);
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; margin:0 auto 12px;
+}
+.form-title { font-size:22px; font-weight:800; color:var(--text); }
+.form-sub { font-size:13px; color:var(--text-muted); margin-top:4px; }
+.role-select { display:flex; gap:8px; margin-bottom:18px; }
+.role-btn {
+  flex:1; padding:10px; border:2px solid var(--border);
+  border-radius:var(--radius-sm); text-align:center;
+  cursor:pointer; transition:var(--tr); font-size:13px; font-weight:600;
+  color:var(--text-muted); background:white;
+}
+.role-btn.active { border-color:var(--primary); background:#EFF6FF; color:var(--primary); }
+.role-btn i { display:block; font-size:20px; margin-bottom:4px; }
+.forgot { font-size:12px; color:var(--primary); cursor:pointer; float:left; margin-top:4px; }
+body.ltr .forgot { float:right; }
+.login-footer { text-align:center; margin-top:24px; font-size:12px; color:var(--text-muted); }
+@media(max-width:768px){ .login-art{display:none} .login-form-wrap{width:100%;padding:40px 24px} }
+</style>
 </head>
-<body>
-<script>window.location.replace('platform/index.html');</script>
+<body class="rtl">
+<div class="login-page">
+  <div class="login-art">
+    <div class="art-logo">🛡️</div>
+    <h1 class="art-title ar-text">منصة التعلم والتطوير<br>لصندوق الحماية الاجتماعية</h1>
+    <h1 class="art-title en-text" style="display:none">Learning &amp; Development Platform<br>Social Protection Fund</h1>
+    <p class="art-sub ar-text">تعلّم، تطور، وقدم الخدمة باحترافية</p>
+    <p class="art-sub en-text" style="display:none">Learn, grow, and serve with excellence</p>
+    <div class="art-badges">
+      <div class="art-badge"><i class="fas fa-book"></i> <span class="ar-text">قوانين وأنظمة</span><span class="en-text" style="display:none">Laws &amp; Regs</span></div>
+      <div class="art-badge"><i class="fas fa-question-circle"></i> <span class="ar-text">اختبارات تفاعلية</span><span class="en-text" style="display:none">Interactive Quizzes</span></div>
+      <div class="art-badge"><i class="fas fa-graduation-cap"></i> <span class="ar-text">مسارات تدريبية</span><span class="en-text" style="display:none">Training Paths</span></div>
+      <div class="art-badge"><i class="fas fa-database"></i> <span class="ar-text">قاعدة المعرفة</span><span class="en-text" style="display:none">Knowledge Base</span></div>
+    </div>
+  </div>
+
+  <div class="login-form-wrap">
+    <div class="login-form-inner">
+      <div class="form-logo">
+        <div class="logo-icon2">🛡️</div>
+        <h2 class="form-title ar-text">مرحباً بك</h2>
+        <h2 class="form-title en-text" style="display:none">Welcome</h2>
+        <p class="form-sub ar-text">سجّل الدخول للوصول إلى منصة التعلم</p>
+        <p class="form-sub en-text" style="display:none">Sign in to access the learning platform</p>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;" class="ar-text">نوع الحساب</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;" class="en-text" style="display:none">Account Type</div>
+        <div class="role-select">
+          <div class="role-btn active" onclick="selectRole('employee',this)">
+            <i class="fas fa-user"></i>
+            <span class="ar-text">موظف</span><span class="en-text" style="display:none">Employee</span>
+          </div>
+          <div class="role-btn" onclick="selectRole('admin',this)">
+            <i class="fas fa-shield-alt"></i>
+            <span class="ar-text">مدير</span><span class="en-text" style="display:none">Admin</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label ar-text">الرقم الوظيفي أو البريد الإلكتروني</label>
+        <label class="form-label en-text" style="display:none">Employee ID or Email</label>
+        <div class="input-icon">
+          <input type="text" class="form-control" id="emailInput" placeholder="" value="ahmed.rashdi@spf.gov.om">
+          <i class="fas fa-user"></i>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label ar-text">كلمة المرور</label>
+        <label class="form-label en-text" style="display:none">Password</label>
+        <div class="input-icon">
+          <input type="password" class="form-control" id="passInput" value="••••••••">
+          <i class="fas fa-lock"></i>
+        </div>
+        <span class="forgot ar-text">نسيت كلمة المرور؟</span>
+        <span class="forgot en-text" style="display:none">Forgot password?</span>
+      </div>
+
+      <div id="errorMsg" style="color:var(--red);font-size:13px;margin-bottom:12px;display:none;" class="ar-text">يرجى إدخال بيانات صحيحة</div>
+
+      <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()" style="margin-top:8px;">
+        <i class="fas fa-sign-in-alt"></i>
+        <span class="ar-text">تسجيل الدخول</span>
+        <span class="en-text" style="display:none">Sign In</span>
+      </button>
+
+      <div class="login-footer">
+        <span class="ar-text">صندوق الحماية الاجتماعية • سلطنة عُمان © 2024</span>
+        <span class="en-text" style="display:none">Social Protection Fund • Sultanate of Oman © 2024</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button onclick="toggleLang()" style="position:fixed;bottom:24px;left:24px;background:white;border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--primary);box-shadow:var(--shadow);z-index:999;">EN / ع</button>
+
+<script>
+let selectedRole = 'employee';
+function selectRole(role, el) {
+  selectedRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const emailInput = document.getElementById('emailInput');
+  emailInput.value = role === 'admin' ? 'admin@spf.gov.om' : 'ahmed.rashdi@spf.gov.om';
+}
+function doLogin() {
+  const email = document.getElementById('emailInput').value;
+  const pass = document.getElementById('passInput').value;
+  if (!email || !pass) { document.getElementById('errorMsg').style.display='block'; return; }
+  const isAdmin = selectedRole === 'admin';
+  const user = isAdmin
+    ? { name_ar: 'سعيد بن راشد المديري', name_en: 'Saeed Al-Mudiri', role: 'admin' }
+    : { name_ar: 'أحمد بن سالم الراشدي', name_en: 'Ahmed Al-Rashdi', role: 'employee' };
+  localStorage.setItem('spf_user', JSON.stringify(user));
+  window.location.href = 'dashboard.html';
+}
+function toggleLang() {
+  const isAr = document.documentElement.getAttribute('dir') === 'rtl';
+  document.documentElement.setAttribute('dir', isAr ? 'ltr' : 'rtl');
+  document.documentElement.setAttribute('lang', isAr ? 'en' : 'ar');
+  document.body.classList.toggle('ltr', isAr);
+  document.body.classList.toggle('rtl', !isAr);
+  document.querySelectorAll('.ar-text').forEach(el => el.style.display = isAr ? 'none' : '');
+  document.querySelectorAll('.en-text').forEach(el => el.style.display = isAr ? '' : 'none');
+  document.querySelector('[onclick="toggleLang()"]').textContent = isAr ? 'ع / AR' : 'EN / ع';
+}
+</script>
 </body>
 </html>

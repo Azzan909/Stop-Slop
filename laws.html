@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>القوانين والأنظمة — صندوق الحماية الاجتماعية</title>
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+.laws-layout { display: flex; gap: 24px; align-items: flex-start; }
+.chapters-list { width: 300px; flex-shrink: 0; }
+.chapters-list .chapter-card { cursor: pointer; transition: all .2s; border: 2px solid transparent; }
+.chapters-list .chapter-card.active { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(26,79,114,.1); }
+.chapter-viewer { flex: 1; min-width: 0; }
+.chapter-viewer .card { min-height: 500px; }
+.viewer-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 0; }
+.viewer-tab { padding: 10px 20px; border: none; background: none; font-family: inherit; font-size: .95rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.viewer-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.viewer-tab:hover:not(.active) { color: var(--text); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.article-block { margin-bottom: 20px; padding: 16px; background: var(--bg); border-radius: 8px; border-right: 4px solid var(--primary); }
+body.ltr .article-block { border-right: none; border-left: 4px solid var(--primary); }
+.article-num { font-size: .8rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; letter-spacing: .05em; }
+.article-text { font-size: .95rem; line-height: 1.8; color: var(--text); }
+.media-placeholder { background: linear-gradient(135deg, #1A4F72 0%, #0d2f45 100%); border-radius: 12px; padding: 60px 20px; text-align: center; color: #fff; margin-bottom: 20px; }
+.media-placeholder i { font-size: 3rem; margin-bottom: 16px; opacity: .8; }
+.media-placeholder h3 { font-size: 1.1rem; margin-bottom: 8px; }
+.media-placeholder p { font-size: .85rem; opacity: .7; }
+.audio-placeholder { background: var(--bg); border: 2px dashed var(--border); border-radius: 12px; padding: 30px 20px; text-align: center; color: var(--text-muted); margin-bottom: 16px; }
+.audio-placeholder i { font-size: 2rem; margin-bottom: 12px; color: var(--gold); }
+.progress-bar-wrap { background: var(--border); border-radius: 999px; height: 6px; margin-top: 8px; }
+.progress-bar-fill { height: 6px; border-radius: 999px; background: var(--primary); transition: width .4s; }
+.chapter-meta { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.chapter-meta .badge { font-size: .72rem; padding: 3px 10px; border-radius: 999px; background: var(--primary); color: #fff; font-weight: 600; }
+.chapter-complete-btn { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 20px; transition: opacity .2s; }
+.chapter-complete-btn:hover { opacity: .9; }
+.chapter-complete-btn.done { background: var(--success); }
+@media(max-width:900px){.laws-layout{flex-direction:column;}.chapters-list{width:100%;}}
+</style>
+</head>
+<body class="page-layout">
+<div id="shell"></div>
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><span class="ar-text">القوانين والأنظمة</span><span class="en-text">Laws &amp; Regulations</span></h1>
+      <p class="page-subtitle"><span class="ar-text">قانون الحماية الاجتماعية — المرسوم الملكي رقم 3/2023</span><span class="en-text">Social Protection Law — Royal Decree No. 3/2023</span></p>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div class="stat-card" style="min-width:120px;padding:12px 18px;">
+        <div class="stat-value" id="chapDone">0</div>
+        <div class="stat-label"><span class="ar-text">فصول مكتملة</span><span class="en-text">Completed</span></div>
+      </div>
+      <div class="stat-card" style="min-width:120px;padding:12px 18px;">
+        <div class="stat-value">6</div>
+        <div class="stat-label"><span class="ar-text">إجمالي الفصول</span><span class="en-text">Total Chapters</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="laws-layout">
+    <div class="chapters-list" id="chaptersList"></div>
+    <div class="chapter-viewer">
+      <div class="card" id="chapterViewer">
+        <div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
+          <i class="fa-solid fa-book-open" style="font-size:3rem;margin-bottom:16px;color:var(--border);"></i>
+          <p><span class="ar-text">اختر فصلاً من القائمة لعرض محتواه</span><span class="en-text">Select a chapter from the list to view its content</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.requireAuth();
+document.getElementById('shell').innerHTML = buildSidebar('laws.html') + buildTopbar('القوانين والأنظمة','Laws & Regulations');
+App.init();
+
+let currentChapter = null;
+
+function updateChapDone() {
+  let done = 0;
+  SPF.chapters.forEach(c => { if(App.getProgress('ch_'+c.id)) done++; });
+  document.getElementById('chapDone').textContent = done;
+}
+
+function buildChaptersList() {
+  const container = document.getElementById('chaptersList');
+  container.innerHTML = SPF.chapters.map(ch => {
+    const done = App.getProgress('ch_'+ch.id);
+    return `
+    <div class="chapter-card card" id="chCard_${ch.id}" onclick="openChapter(${ch.id})" style="margin-bottom:12px;padding:16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="chapter-icon" style="font-size:1.4rem;">${ch.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:.9rem;line-height:1.3;">
+            <span class="ar-text">${ch.title_ar}</span>
+            <span class="en-text">${ch.title_en}</span>
+          </div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:2px;">
+            <span class="ar-text">${ch.articles_ar}</span>
+            <span class="en-text">${ch.articles_en}</span>
+          </div>
+          <div class="progress-bar-wrap" style="margin-top:6px;">
+            <div class="progress-bar-fill" style="width:${done?'100':'0'}%;"></div>
+          </div>
+        </div>
+        ${done ? '<i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.1rem;"></i>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openChapter(id) {
+  currentChapter = id;
+  document.querySelectorAll('.chapter-card').forEach(el => el.classList.remove('active'));
+  document.getElementById('chCard_'+id).classList.add('active');
+
+  const ch = SPF.chapters.find(c => c.id === id);
+  if(!ch) return;
+  const done = App.getProgress('ch_'+id);
+
+  document.getElementById('chapterViewer').innerHTML = `
+    <div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+        <span style="font-size:2rem;">${ch.icon}</span>
+        <div>
+          <h2 style="font-size:1.2rem;font-weight:700;margin:0;">
+            <span class="ar-text">${ch.title_ar}</span>
+            <span class="en-text">${ch.title_en}</span>
+          </h2>
+          <div class="chapter-meta">
+            <span class="badge"><span class="ar-text">${ch.articles_ar}</span><span class="en-text">${ch.articles_en}</span></span>
+            <span style="font-size:.8rem;color:var(--text-muted);">
+              <span class="ar-text">${ch.desc_ar}</span>
+              <span class="en-text">${ch.desc_en}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="viewer-tabs">
+      <button class="viewer-tab active" onclick="switchTab('text','text-tab')" id="tab-text">
+        <i class="fa-solid fa-file-lines"></i>
+        <span class="ar-text"> النص القانوني</span><span class="en-text"> Legal Text</span>
+      </button>
+      <button class="viewer-tab" onclick="switchTab('video','video-tab')" id="tab-video">
+        <i class="fa-solid fa-play-circle"></i>
+        <span class="ar-text"> فيديو شرح</span><span class="en-text"> Explainer Video</span>
+      </button>
+      <button class="viewer-tab" onclick="switchTab('audio','audio-tab')" id="tab-audio">
+        <i class="fa-solid fa-headphones"></i>
+        <span class="ar-text"> ملف صوتي</span><span class="en-text"> Audio</span>
+      </button>
+    </div>
+
+    <div class="tab-panel active" id="text-tab">
+      ${ch.content_ar}
+    </div>
+
+    <div class="tab-panel" id="video-tab">
+      <div class="media-placeholder">
+        <i class="fa-solid fa-film"></i>
+        <h3><span class="ar-text">فيديو شرح الفصل: ${ch.title_ar}</span><span class="en-text">Chapter Explainer: ${ch.title_en}</span></h3>
+        <p><span class="ar-text">سيتم رفع مقاطع الفيديو التوضيحية قريباً</span><span class="en-text">Explainer videos will be uploaded soon</span></p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="audio-tab">
+      <div style="margin-bottom:16px;padding:16px;background:var(--bg);border-radius:10px;border:1px solid var(--border);">
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:12px;">
+          <i class="fa-solid fa-volume-high" style="color:var(--gold);"></i>
+          <span class="ar-text"> ملخص صوتي — ${ch.title_ar}</span>
+          <span class="en-text"> Audio Summary — ${ch.title_en}</span>
+        </div>
+        <div style="background:var(--primary);border-radius:8px;padding:16px;color:#fff;text-align:center;">
+          <i class="fa-solid fa-waveform-lines" style="font-size:1.5rem;margin-bottom:8px;"></i><br>
+          <span style="font-size:.8rem;opacity:.8;"><span class="ar-text">الملف الصوتي قيد الإعداد</span><span class="en-text">Audio file coming soon</span></span>
+        </div>
+      </div>
+    </div>
+
+    <button class="chapter-complete-btn ${done?'done':''}" onclick="markDone(${id})">
+      <i class="fa-solid ${done?'fa-check-double':'fa-check'}"></i>
+      <span class="ar-text"> ${done?'تم الإكمال ✓':'وضع علامة مكتمل'}</span>
+      <span class="en-text"> ${done?'Completed ✓':'Mark as Complete'}</span>
+    </button>`;
+
+  App.applyLang();
+}
+
+function switchTab(name, panelId) {
+  document.querySelectorAll('.viewer-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+function markDone(id) {
+  App.setProgress('ch_'+id, true);
+  buildChaptersList();
+  updateChapDone();
+  const btn = document.querySelector('.chapter-complete-btn');
+  if(btn) {
+    btn.classList.add('done');
+    btn.innerHTML = '<i class="fa-solid fa-check-double"></i> <span class="ar-text">تم الإكمال ✓</span><span class="en-text">Completed ✓</span>';
+    App.applyLang();
+  }
+}
+
+buildChaptersList();
+updateChapDone();
+if(SPF.chapters.length) openChapter(SPF.chapters[0].id);
+</script>
+</body>
+</html>

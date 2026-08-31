@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الاختبارات — صندوق الحماية الاجتماعية</title>
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+.quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 20px; }
+.quiz-card { border: 1px solid var(--border); border-radius: 14px; padding: 24px; background: var(--surface); transition: all .2s; position: relative; overflow: hidden; }
+.quiz-card::before { content:''; position:absolute; top:0; right:0; width:100px; height:100px; background:radial-gradient(circle at top right, rgba(200,169,81,.15) 0%, transparent 70%); }
+.quiz-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.quiz-icon { width: 52px; height: 52px; border-radius: 12px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 14px; }
+.quiz-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+.quiz-meta { font-size: .8rem; color: var(--text-muted); margin-bottom: 14px; display: flex; gap: 14px; flex-wrap: wrap; }
+.quiz-meta span { display: flex; align-items: center; gap: 4px; }
+.quiz-score-bar { margin-bottom: 14px; }
+.quiz-score-bar .label { display: flex; justify-content: space-between; font-size: .8rem; margin-bottom: 4px; }
+.quiz-score-bar .bar { background: var(--border); border-radius: 999px; height: 6px; }
+.quiz-score-bar .fill { height: 6px; border-radius: 999px; transition: width .5s; }
+.start-btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-family: inherit; font-size: .95rem; font-weight: 700; cursor: pointer; transition: all .2s; }
+.start-btn.primary { background: var(--primary); color: #fff; }
+.start-btn.primary:hover { opacity: .9; }
+.start-btn.retry { background: var(--gold); color: #1a1a1a; }
+.start-btn.retry:hover { opacity: .9; }
+.difficulty-badge { display: inline-block; font-size: .7rem; padding: 2px 10px; border-radius: 999px; font-weight: 700; margin-bottom: 10px; }
+.diff-easy { background: rgba(34,197,94,.15); color: #16a34a; }
+.diff-medium { background: rgba(234,179,8,.15); color: #b45309; }
+.diff-hard { background: rgba(239,68,68,.15); color: #dc2626; }
+.summary-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+@media(max-width:700px){.summary-bar{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body class="page-layout">
+<div id="shell"></div>
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><span class="ar-text">الاختبارات الدورية</span><span class="en-text">Periodic Quizzes</span></h1>
+      <p class="page-subtitle"><span class="ar-text">اختبر معرفتك بقانون الحماية الاجتماعية</span><span class="en-text">Test your knowledge of Social Protection Law</span></p>
+    </div>
+  </div>
+  <div class="summary-bar" id="summaryBar"></div>
+  <div class="quiz-grid" id="quizGrid"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.requireAuth();
+document.getElementById('shell').innerHTML = buildSidebar('quiz.html') + buildTopbar('الاختبارات الدورية','Periodic Quizzes');
+App.init();
+
+function getLevelInfo(q) {
+  const ar = q.level_ar || 'متوسط';
+  const en = q.level_en || 'Medium';
+  if (ar === 'مبتدئ') return { ar, en, cls: 'diff-easy' };
+  if (ar === 'متقدم' || ar === 'صعب') return { ar, en, cls: 'diff-hard' };
+  return { ar, en, cls: 'diff-medium' };
+}
+
+function buildSummary() {
+  const results = App.getQuizResults();
+  const latestResults = Object.keys(results).map(id => {
+    const arr = results[id];
+    return arr[arr.length - 1];
+  });
+  const taken = latestResults.length;
+  const avg = taken ? Math.round(latestResults.reduce((s,r) => s + r.score, 0) / taken) : 0;
+  const passed = latestResults.filter(r => r.score >= 70).length;
+
+  document.getElementById('summaryBar').innerHTML = [
+    { icon: 'fa-list-check',    val: SPF.quizzes.length, label_ar: 'إجمالي الاختبارات', label_en: 'Total Quizzes',  color: 'var(--primary)' },
+    { icon: 'fa-circle-check',  val: taken,              label_ar: 'اختبارات أُدِّيت',  label_en: 'Taken',          color: 'var(--success)' },
+    { icon: 'fa-trophy',        val: avg ? avg+'%' : '--', label_ar: 'متوسط الدرجات',   label_en: 'Average Score',  color: 'var(--gold)' },
+    { icon: 'fa-medal',         val: passed,             label_ar: 'اختبارات ناجحة',   label_en: 'Passed',         color: '#a855f7' }
+  ].map(item => `
+    <div class="stat-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <div style="width:38px;height:38px;border-radius:9px;background:${item.color}22;display:flex;align-items:center;justify-content:center;">
+          <i class="fa-solid ${item.icon}" style="color:${item.color};"></i>
+        </div>
+        <div class="stat-value" style="font-size:1.5rem;">${item.val}</div>
+      </div>
+      <div class="stat-label"><span class="ar-text">${item.label_ar}</span><span class="en-text">${item.label_en}</span></div>
+    </div>`).join('');
+}
+
+function buildQuizGrid() {
+  const icons = ['fa-book','fa-hand-holding-heart','fa-shield-halved','fa-file-contract','fa-building-columns','fa-star'];
+  const PASS_SCORE = 70;
+
+  document.getElementById('quizGrid').innerHTML = SPF.quizzes.map((q,i) => {
+    const lastResult = App.getLastQuizResult(q.id);
+    const score = lastResult ? lastResult.score : null;
+    const dl = getLevelInfo(q);
+    const scoreColor = score === null ? 'var(--border)' : score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--gold)' : 'var(--danger)';
+
+    return `
+    <div class="quiz-card">
+      <div class="quiz-icon"><i class="fa-solid ${icons[i%icons.length]}"></i></div>
+      <span class="difficulty-badge ${dl.cls}"><span class="ar-text">${dl.ar}</span><span class="en-text">${dl.en}</span></span>
+      <div class="quiz-title"><span class="ar-text">${q.title_ar}</span><span class="en-text">${q.title_en}</span></div>
+      <div class="quiz-meta">
+        <span><i class="fa-regular fa-circle-question"></i> <span class="ar-text">${q.questions.length} سؤال</span><span class="en-text">${q.questions.length} Questions</span></span>
+        <span><i class="fa-regular fa-clock"></i> <span class="ar-text">${q.time_min} دقيقة</span><span class="en-text">${q.time_min} min</span></span>
+        <span><i class="fa-solid fa-bullseye"></i> <span class="ar-text">النجاح: ${PASS_SCORE}%</span><span class="en-text">Pass: ${PASS_SCORE}%</span></span>
+      </div>
+      <div class="quiz-score-bar">
+        <div class="label">
+          <span><span class="ar-text">آخر درجة</span><span class="en-text">Last Score</span></span>
+          <span style="font-weight:700;color:${scoreColor};">${score !== null ? score+'%' : '—'}</span>
+        </div>
+        <div class="bar"><div class="fill" style="width:${score||0}%;background:${scoreColor};"></div></div>
+      </div>
+      ${score !== null ? `
+        <div style="font-size:.8rem;text-align:center;margin-bottom:10px;padding:6px;border-radius:6px;background:${score>=PASS_SCORE?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)'};color:${score>=PASS_SCORE?'var(--success)':'var(--danger)'};font-weight:600;">
+          ${score>=PASS_SCORE
+            ? '<span class="ar-text">✓ ناجح</span><span class="en-text">✓ Passed</span>'
+            : '<span class="ar-text">✗ يحتاج مراجعة</span><span class="en-text">✗ Needs Review</span>'}
+        </div>` : ''}
+      <button class="start-btn ${score!==null?'retry':'primary'}" onclick="startQuiz(${q.id})">
+        <i class="fa-solid ${score!==null?'fa-rotate-right':'fa-play'}"></i>
+        ${score!==null
+          ? '<span class="ar-text"> إعادة الاختبار</span><span class="en-text"> Retake Quiz</span>'
+          : '<span class="ar-text"> ابدأ الاختبار</span><span class="en-text"> Start Quiz</span>'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function startQuiz(id) {
+  window.location.href = 'quiz-take.html?quiz=' + id;
+}
+
+buildSummary();
+buildQuizGrid();
+</script>
+</body>
+</html>
