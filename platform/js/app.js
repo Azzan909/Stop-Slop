@@ -1,8 +1,8 @@
 // ===== SHARED APP UTILITIES =====
 
 const App = {
-  lang: localStorage.getItem('spf_lang') || 'ar',
-  user: JSON.parse(localStorage.getItem('spf_user') || 'null'),
+  lang: (function() { try { return localStorage.getItem('spf_lang') || 'ar'; } catch(e) { return 'ar'; } })(),
+  user: (function() { try { return JSON.parse(localStorage.getItem('spf_user') || 'null'); } catch(e) { return null; } })(),
 
   init() {
     this.applyLang();
@@ -24,7 +24,7 @@ const App = {
     const btn = document.getElementById('langToggle');
     if (btn) btn.addEventListener('click', () => {
       this.lang = this.lang === 'ar' ? 'en' : 'ar';
-      localStorage.setItem('spf_lang', this.lang);
+      try { localStorage.setItem('spf_lang', this.lang); } catch(e) {}
       location.reload();
     });
   },
@@ -35,12 +35,12 @@ const App = {
 
   login(name_ar, name_en, role, department_ar, department_en, email) {
     const user = { name_ar, name_en, role, department_ar, department_en, email, loginTime: Date.now() };
-    localStorage.setItem('spf_user', JSON.stringify(user));
+    try { localStorage.setItem('spf_user', JSON.stringify(user)); } catch(e) {}
     this.user = user;
   },
 
   logout() {
-    localStorage.removeItem('spf_user');
+    try { localStorage.removeItem('spf_user'); } catch(e) {}
     window.location.href = 'index.html';
   },
 
@@ -71,60 +71,72 @@ const App = {
 
   // Progress tracking — accepts optional key param
   getProgress(key) {
-    const p = JSON.parse(localStorage.getItem('spf_progress') || '{}');
-    return key !== undefined ? p[key] : p;
+    try {
+      const p = JSON.parse(localStorage.getItem('spf_progress') || '{}');
+      return key !== undefined ? p[key] : p;
+    } catch(e) { return key !== undefined ? undefined : {}; }
   },
 
   setProgress(key, val) {
-    const p = this.getProgress();
-    p[key] = val;
-    localStorage.setItem('spf_progress', JSON.stringify(p));
+    try {
+      const p = this.getProgress();
+      p[key] = val;
+      localStorage.setItem('spf_progress', JSON.stringify(p));
+    } catch(e) {}
   },
 
   // Quiz results — stored as { quizId: [{score, correct, total, date}, ...] }
   getQuizResults() {
-    return JSON.parse(localStorage.getItem('spf_quiz_results') || '{}');
+    try { return JSON.parse(localStorage.getItem('spf_quiz_results') || '{}'); } catch(e) { return {}; }
   },
 
   saveQuizResult(quizId, score, correct, total) {
-    const r = this.getQuizResults();
-    if (!r[quizId]) r[quizId] = [];
-    r[quizId].push({ score, correct, total, date: new Date().toLocaleDateString('ar-OM') });
-    localStorage.setItem('spf_quiz_results', JSON.stringify(r));
+    try {
+      const r = this.getQuizResults();
+      if (!r[quizId]) r[quizId] = [];
+      r[quizId].push({ score, correct, total, date: new Date().toLocaleDateString('ar-OM') });
+      localStorage.setItem('spf_quiz_results', JSON.stringify(r));
+    } catch(e) {}
   },
 
   // Returns last attempt object { score, correct, total, date } or null
   getLastQuizResult(quizId) {
-    const r = this.getQuizResults();
-    const arr = r[quizId];
-    if (!arr || !arr.length) return null;
-    return arr[arr.length - 1];
+    try {
+      const r = this.getQuizResults();
+      const arr = r[quizId];
+      if (!arr || !arr.length) return null;
+      return arr[arr.length - 1];
+    } catch(e) { return null; }
   },
 
   // Dark mode
   applyDark() {
-    const dark = localStorage.getItem('spf_dark') === '1';
-    document.body.classList.toggle('dark', dark);
-    const btn = document.getElementById('darkToggle');
-    if (btn) btn.innerHTML = dark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    try {
+      const dark = localStorage.getItem('spf_dark') === '1';
+      document.body.classList.toggle('dark', dark);
+      const btn = document.getElementById('darkToggle');
+      if (btn) btn.innerHTML = dark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    } catch(e) {}
   },
 
   toggleDark() {
     const isDark = document.body.classList.toggle('dark');
-    localStorage.setItem('spf_dark', isDark ? '1' : '0');
+    try { localStorage.setItem('spf_dark', isDark ? '1' : '0'); } catch(e) {}
     const btn = document.getElementById('darkToggle');
     if (btn) btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
   },
 
   // Sidebar collapse
   restoreSidebar() {
-    const collapsed = localStorage.getItem('spf_sidebar') === '1';
-    if (collapsed) {
-      const sidebar = document.getElementById('sidebar');
-      const content = document.querySelector('.page-content') || document.querySelector('.main-content');
-      if (sidebar) sidebar.classList.add('collapsed');
-      if (content) content.classList.add('sidebar-collapsed');
-    }
+    try {
+      const collapsed = localStorage.getItem('spf_sidebar') === '1';
+      if (collapsed) {
+        const sidebar = document.getElementById('sidebar');
+        const content = document.querySelector('.page-content') || document.querySelector('.main-content');
+        if (sidebar) sidebar.classList.add('collapsed');
+        if (content) content.classList.add('sidebar-collapsed');
+      }
+    } catch(e) {}
   },
 
   toggleSidebar() {
@@ -133,7 +145,7 @@ const App = {
     if (!sidebar) return;
     const isCollapsed = sidebar.classList.toggle('collapsed');
     if (content) content.classList.toggle('sidebar-collapsed', isCollapsed);
-    localStorage.setItem('spf_sidebar', isCollapsed ? '1' : '0');
+    try { localStorage.setItem('spf_sidebar', isCollapsed ? '1' : '0'); } catch(e) {}
   }
 };
 

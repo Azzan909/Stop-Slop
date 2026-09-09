@@ -53,18 +53,72 @@ body.ltr .welcome-banner::after { right:auto; left:24px; }
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
 <script>
-const user = JSON.parse(localStorage.getItem('spf_user') || 'null');
+const user = (function() { try { return JSON.parse(localStorage.getItem('spf_user') || 'null'); } catch(e) { return null; } })();
 if (!user) location.href = 'index.html';
-const lang = localStorage.getItem('spf_lang') || 'ar';
+const lang = (function() { try { return localStorage.getItem('spf_lang') || 'ar'; } catch(e) { return 'ar'; } })();
 const isAr = lang === 'ar';
 const t = (a,e) => isAr ? a : e;
+const PASS_SCORE = 80;
 
-const quizResults = JSON.parse(localStorage.getItem('spf_quiz_results') || '{}');
+// Real data from localStorage
+const quizResults = App.getQuizResults();
 const completedQuizzes = Object.keys(quizResults).length;
 const latestAttempts = Object.values(quizResults).map(arr => arr[arr.length-1]);
 const avgScore = latestAttempts.length > 0
   ? Math.round(latestAttempts.reduce((s,r) => s + r.score, 0) / latestAttempts.length)
   : 0;
+const passedQuizzes = latestAttempts.filter(r => r.score >= PASS_SCORE).length;
+
+// Real training progress from localStorage
+const progress = App.getProgress();
+var totalModules = 0, completedModules = 0;
+if (typeof SPF !== 'undefined' && SPF.training_programs) {
+  SPF.training_programs.forEach(function(prog) {
+    prog.modules.forEach(function(mod) {
+      totalModules++;
+      if (progress['mod_' + prog.id + '_' + mod.id] || mod.status === 'done') completedModules++;
+    });
+  });
+}
+const trainingPct = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+const trainingLabel = totalModules > 0
+  ? completedModules + '/' + totalModules + (isAr ? ' وحدة' : ' modules')
+  : (isAr ? 'لا يوجد بيانات' : 'No data');
+
+// Build recent quiz activity from real results
+var recentActivityHtml = '';
+var quizResultEntries = [];
+Object.keys(quizResults).forEach(function(qid) {
+  var arr = quizResults[qid];
+  var quiz = SPF && SPF.quizzes ? SPF.quizzes.find(function(q) { return q.id == qid; }) : null;
+  arr.forEach(function(r) {
+    quizResultEntries.push({ quiz: quiz, result: r, score: r.score });
+  });
+});
+quizResultEntries.sort(function(a,b) { return b.score - a.score; });
+var shown = quizResultEntries.slice(0,3);
+if (shown.length > 0) {
+  recentActivityHtml = shown.map(function(entry) {
+    var color = entry.score >= PASS_SCORE ? 'var(--success)' : entry.score >= 60 ? 'var(--gold)' : 'var(--danger)';
+    var title_ar = entry.quiz ? entry.quiz.title_ar : 'اختبار';
+    var title_en = entry.quiz ? entry.quiz.title_en : 'Quiz';
+    return '<div class="activity-item">' +
+      '<div class="a-icon" style="background:#EFF6FF;color:var(--primary)"><i class="fas fa-question-circle"></i></div>' +
+      '<div class="a-text" style="flex:1">' +
+        '<div class="a-title ar-text">' + title_ar + '</div>' +
+        '<div class="a-title en-text" style="display:none">' + title_en + '</div>' +
+        '<div class="a-time">' + (entry.result.date || '') + '</div>' +
+      '</div>' +
+      '<div class="a-score" style="color:' + color + '">' + entry.score + '%</div>' +
+    '</div>';
+  }).join('');
+} else {
+  recentActivityHtml =
+    '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:.9rem;">' +
+      '<span class="ar-text">لا يوجد نشاط بعد — ابدأ باختبار!</span>' +
+      '<span class="en-text" style="display:none">No activity yet — take a quiz!</span>' +
+    '</div>';
+}
 
 document.getElementById('shell').innerHTML = buildSidebar('dashboard.html') + `
 <div class="main-content">
@@ -77,8 +131,8 @@ document.getElementById('shell').innerHTML = buildSidebar('dashboard.html') + `
       <div class="welcome-sub en-text" style="display:none">Continue your learning journey at the Social Protection Fund</div>
       <div class="welcome-tags">
         <div class="welcome-tag"><i class="fas fa-calendar"></i> <span id="todayDate"></span></div>
-        <div class="welcome-tag"><i class="fas fa-star"></i> <span class="ar-text">مستوى متوسط</span><span class="en-text" style="display:none">Intermediate Level</span></div>
-        <div class="welcome-tag"><i class="fas fa-fire"></i> <span class="ar-text">سلسلة 3 أيام</span><span class="en-text" style="display:none">3-day streak</span></div>
+        <div class="welcome-tag"><i class="fas fa-bullseye"></i> <span class="ar-text">النجاح: ${PASS_SCORE}%</span><span class="en-text" style="display:none">Pass mark: ${PASS_SCORE}%</span></div>
+        <div class="welcome-tag"><i class="fas fa-trophy"></i> <span class="ar-text">ناجح: ${passedQuizzes} اختبار</span><span class="en-text" style="display:none">Passed: ${passedQuizzes} quiz</span></div>
       </div>
     </div>
 
@@ -98,35 +152,37 @@ document.getElementById('shell').innerHTML = buildSidebar('dashboard.html') + `
           <div class="stat-value">${completedQuizzes}</div>
           <div class="stat-label ar-text">اختبارات مكتملة</div>
           <div class="stat-label en-text" style="display:none">Quizzes Completed</div>
-          <div class="stat-change up">من 5 اختبارات</div>
+          <div class="stat-change up ar-text">من ${SPF && SPF.quizzes ? SPF.quizzes.length : 5} اختبارات</div>
+          <div class="stat-change up en-text" style="display:none">of ${SPF && SPF.quizzes ? SPF.quizzes.length : 5} quizzes</div>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
         <div>
-          <div class="stat-value">${avgScore || '--'}%</div>
+          <div class="stat-value">${avgScore ? avgScore+'%' : '--'}</div>
           <div class="stat-label ar-text">متوسط النتائج</div>
           <div class="stat-label en-text" style="display:none">Avg Score</div>
-          <div class="stat-change ${avgScore>=70?'up':'down'}">${avgScore>=70?'✓ ممتاز':'يحتاج تحسين'}</div>
+          <div class="stat-change ${avgScore >= PASS_SCORE ? 'up' : 'down'} ar-text">${avgScore >= PASS_SCORE ? '✓ ممتاز' : avgScore > 0 ? 'يحتاج تحسين' : 'لم تبدأ بعد'}</div>
+          <div class="stat-change ${avgScore >= PASS_SCORE ? 'up' : 'down'} en-text" style="display:none">${avgScore >= PASS_SCORE ? '✓ Excellent' : avgScore > 0 ? 'Needs improvement' : 'Not started'}</div>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon red"><i class="fas fa-graduation-cap"></i></div>
         <div>
-          <div class="stat-value">45%</div>
+          <div class="stat-value">${trainingPct}%</div>
           <div class="stat-label ar-text">إتمام التدريب</div>
           <div class="stat-label en-text" style="display:none">Training Progress</div>
-          <div class="stat-change up ar-text">الوحدة 3 من 5</div>
-          <div class="stat-change up en-text" style="display:none">Module 3 of 5</div>
+          <div class="stat-change up ar-text">${trainingLabel}</div>
+          <div class="stat-change up en-text" style="display:none">${trainingLabel}</div>
         </div>
       </div>
     </div>
 
     <div class="quick-grid">
       <a href="laws.html" class="quick-card"><div class="q-icon">📖</div><div class="q-title ar-text">القوانين والأنظمة</div><div class="q-title en-text" style="display:none">Laws & Regs</div><div class="q-sub ar-text">6 أبواب • شرح تفاعلي</div><div class="q-sub en-text" style="display:none">6 chapters</div></a>
-      <a href="quiz.html" class="quick-card"><div class="q-icon">🎯</div><div class="q-title ar-text">الاختبارات</div><div class="q-title en-text" style="display:none">Quizzes</div><div class="q-sub ar-text">5 اختبارات متاحة</div><div class="q-sub en-text" style="display:none">5 quizzes</div></a>
+      <a href="quiz.html" class="quick-card"><div class="q-icon">🎯</div><div class="q-title ar-text">الاختبارات</div><div class="q-title en-text" style="display:none">Quizzes</div><div class="q-sub ar-text">${SPF && SPF.quizzes ? SPF.quizzes.length : 5} اختبارات متاحة</div><div class="q-sub en-text" style="display:none">${SPF && SPF.quizzes ? SPF.quizzes.length : 5} quizzes</div></a>
       <a href="training.html" class="quick-card"><div class="q-icon">🎓</div><div class="q-title ar-text">البرامج التدريبية</div><div class="q-title en-text" style="display:none">Training</div><div class="q-sub ar-text">3 برامج مخصصة</div><div class="q-sub en-text" style="display:none">3 programs</div></a>
-      <a href="knowledge.html" class="quick-card"><div class="q-icon">📚</div><div class="q-title ar-text">قاعدة المعرفة</div><div class="q-title en-text" style="display:none">Knowledge Base</div><div class="q-sub ar-text">12 مقالة مرجعية</div><div class="q-sub en-text" style="display:none">12 articles</div></a>
+      <a href="knowledge.html" class="quick-card"><div class="q-icon">📚</div><div class="q-title ar-text">قاعدة المعرفة</div><div class="q-title en-text" style="display:none">Knowledge Base</div><div class="q-sub ar-text">مقالات مرجعية</div><div class="q-sub en-text" style="display:none">Reference articles</div></a>
     </div>
 
     <div class="charts-grid">
@@ -136,58 +192,16 @@ document.getElementById('shell').innerHTML = buildSidebar('dashboard.html') + `
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title ar-text">تقدم التدريب</span><span class="card-title en-text" style="display:none">Training Progress</span></div>
-        <div class="card-body">
-          ${['التعريفات والأحكام العامة','فروع منافع الحماية','فروع التأمين الاجتماعي','إجراءات الخدمة','الاستعداد الشامل'].map((lbl,i)=>{
-            const scores=[88,72,0,0,0];
-            return `<div style="margin-bottom:14px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-                <span style="font-size:13px;font-weight:600">${lbl}</span>
-                <span style="font-size:13px;font-weight:700;color:var(--primary)">${scores[i]?scores[i]+'%':'--'}</span>
-              </div>
-              <div class="progress-bar"><div class="progress-fill ${i<2?'':i<3?'gold':''}" style="width:${scores[i]}%"></div></div>
-            </div>`}).join('')}
-        </div>
+        <div class="card-body" id="trainingBars"></div>
       </div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <span class="card-title ar-text">النشاط الأخير</span>
-        <span class="card-title en-text" style="display:none">Recent Activity</span>
+        <span class="card-title ar-text">نشاط الاختبارات</span>
+        <span class="card-title en-text" style="display:none">Quiz Activity</span>
       </div>
-      <div class="card-body">
-        <div class="activity-item">
-          <div class="a-icon" style="background:#EFF6FF;color:var(--primary)"><i class="fas fa-question-circle"></i></div>
-          <div class="a-text" style="flex:1">
-            <div class="a-title ar-text">اختبار: التعريفات والأحكام العامة</div>
-            <div class="a-title en-text" style="display:none">Quiz: Definitions & General Provisions</div>
-            <div class="a-time">اليوم، 10:30 ص</div>
-          </div>
-          <div class="a-score" style="color:var(--green)">88%</div>
-        </div>
-        <div class="activity-item">
-          <div class="a-icon" style="background:#F0FDF4;color:var(--green)"><i class="fas fa-book"></i></div>
-          <div class="a-text" style="flex:1">
-            <div class="a-title ar-text">قرأت: الباب الأول — التعريفات</div>
-            <div class="a-title en-text" style="display:none">Read: Chapter 1 — Definitions</div>
-            <div class="a-time ar-text">أمس، 2:15 م</div>
-            <div class="a-time en-text" style="display:none">Yesterday, 2:15 PM</div>
-          </div>
-          <div class="badge badge-green ar-text">مكتمل</div>
-          <div class="badge badge-green en-text" style="display:none">Done</div>
-        </div>
-        <div class="activity-item">
-          <div class="a-icon" style="background:#FFFBEB;color:var(--gold-dark)"><i class="fas fa-graduation-cap"></i></div>
-          <div class="a-text" style="flex:1">
-            <div class="a-title ar-text">أتممت: الوحدة 2 — أساسيات القانون</div>
-            <div class="a-title en-text" style="display:none">Completed: Module 2 — Law Fundamentals</div>
-            <div class="a-time ar-text">منذ يومين</div>
-            <div class="a-time en-text" style="display:none">2 days ago</div>
-          </div>
-          <div class="badge badge-gold ar-text">وحدة مكتملة</div>
-          <div class="badge badge-gold en-text" style="display:none">Module Done</div>
-        </div>
-      </div>
+      <div class="card-body" id="recentActivity">${recentActivityHtml}</div>
     </div>
   </div>
 </div>`;
@@ -202,32 +216,69 @@ App.restoreSidebar();
 const today = new Date();
 document.getElementById('todayDate').textContent = today.toLocaleDateString(isAr?'ar-OM':'en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
+// Quiz scores chart from real results
 const allResults = App.getQuizResults();
-const chartScores = SPF.quizzes.map(q => {
+const chartLabels = SPF && SPF.quizzes ? SPF.quizzes.map(q => isAr ? q.title_ar.split(':')[0] : q.title_en.split(':')[0]) : [];
+const chartScores = SPF && SPF.quizzes ? SPF.quizzes.map(q => {
   const arr = allResults[q.id];
   if (!arr || !arr.length) return 0;
   return arr[arr.length-1].score;
-});
-const chartColors = chartScores.map(s => s > 0 ? (s >= 80 ? '#22c55e' : s >= 60 ? '#C8A951' : '#ef4444') : '#E2E8F0');
-new Chart(document.getElementById('quizChart'), {
-  type:'bar',
-  data:{
-    labels: SPF.quizzes.map(q => isAr ? q.title_ar.split(':')[0] : q.title_en.split(':')[0]),
-    datasets:[{
-      label: isAr ? 'النتيجة %' : 'Score %',
-      data: chartScores,
-      backgroundColor: chartColors,
-      borderRadius:8, borderSkipped:false
-    }]
-  },
-  options:{
-    responsive:true,
-    plugins:{legend:{display:false}},
-    scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#F0F4F8'}},x:{grid:{display:false}}}
-  }
-});
+}) : [];
+const chartColors = chartScores.map(s => s > 0 ? (s >= PASS_SCORE ? '#22c55e' : s >= 60 ? '#C8A951' : '#ef4444') : '#E2E8F0');
 
-document.querySelectorAll('.logout-btn').forEach(el=>el.addEventListener('click',()=>{ localStorage.removeItem('spf_user'); location.href='index.html'; }));
+if (chartLabels.length > 0) {
+  new Chart(document.getElementById('quizChart'), {
+    type:'bar',
+    data:{
+      labels: chartLabels,
+      datasets:[{
+        label: isAr ? 'النتيجة %' : 'Score %',
+        data: chartScores,
+        backgroundColor: chartColors,
+        borderRadius:8, borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{min:0,max:100,ticks:{callback:function(v){return v+'%'}},grid:{color:'#F0F4F8'}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+}
+
+// Training bars from real progress
+var trainingBarsHtml = '';
+if (SPF && SPF.training_programs) {
+  SPF.training_programs.forEach(function(prog) {
+    var done = 0;
+    prog.modules.forEach(function(mod) {
+      if (progress['mod_' + prog.id + '_' + mod.id] || mod.status === 'done') done++;
+    });
+    var pct = prog.modules.length > 0 ? Math.round((done / prog.modules.length) * 100) : 0;
+    var label = isAr ? prog.title_ar : prog.title_en;
+    trainingBarsHtml +=
+      '<div style="margin-bottom:14px">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:5px;">' +
+          '<span style="font-size:13px;font-weight:600">' + label + '</span>' +
+          '<span style="font-size:13px;font-weight:700;color:var(--primary)">' + (pct > 0 ? pct + '%' : '--') + '</span>' +
+        '</div>' +
+        '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>';
+  });
+}
+if (!trainingBarsHtml) {
+  trainingBarsHtml = '<p style="color:var(--text-muted);font-size:.9rem;text-align:center;padding:20px 0;">' +
+    '<span class="ar-text">لا توجد برامج تدريبية</span>' +
+    '<span class="en-text" style="display:none">No training programs</span>' +
+    '</p>';
+}
+var trainingBarsEl = document.getElementById('trainingBars');
+if (trainingBarsEl) { trainingBarsEl.innerHTML = trainingBarsHtml; App.applyLang(); }
+
+document.querySelectorAll('.logout-btn').forEach(el=>el.addEventListener('click',()=>App.logout()));
 </script>
 </body>
 </html>
